@@ -33,8 +33,8 @@ class MateNET(object):
     This class only handles the low level protocol,
     it does not care what is attached to the bus.
     """
-    TxPacket = struct('>BBHBB', ('port', 'ptype', 'addr', 'param1', 'param2'))  # Payload is always 4 bytes?
-    QueryPacket = struct('>HBB', ('reg', 'param1', 'param2'))
+    TxPacket = struct('>BBHH', ('port', 'ptype', 'addr', 'param'))  # Payload is always 4 bytes?
+    QueryPacket = struct('>HH', ('reg', 'param'))
     QueryResponse = struct('>H', ('value',))
 
     DEVICE_HUB = 1
@@ -146,13 +146,6 @@ class MateNET(object):
             raise RuntimeError("Error receiving packet - invalid header")
         return data[1:]
 
-    def query(self, port, reg, param1=0, param2=0):
-        packet = MateNET.QueryPacket(reg, param1, param2)
-        resp = self.send(port, MateNET.TYPE_QUERY, packet.to_buffer())
-        if resp:
-            response = MateNET.QueryResponse.from_buffer(resp)
-            return response.value
-
 
 class Mate(MateNET):
     """
@@ -167,5 +160,29 @@ class Mate(MateNET):
         :param port: int, 0-10 (root:0)
         :return: int, the type of device that is attached (see MateNET.DEVICE_*)
         """
-        result = self.query(port, 0x00)
+        result = self.query(0x00, port)
         return result
+
+    def query(self, reg, param=0, port=0):
+        """
+        Query a register and retrieve its value
+        :param reg: The register (16-bit address)
+        :param param: Optional parameter
+        :param port: Port (0-10)
+        :return: The value (16-bit uint)
+        """
+        packet = MateNET.QueryPacket(reg, param)
+        resp = self.send(port, MateNET.TYPE_QUERY, packet.to_buffer())
+        if resp:
+            response = MateNET.QueryResponse.from_buffer(resp)
+            return response.value
+
+    @property
+    def revision(self):
+        """
+        :return: The revision of the attached device (Format "000.000.000")
+        """
+        a = self.query(0x0002)
+        b = self.query(0x0003)
+        c = self.query(0x0004)
+        return '%.3d.%.3d.%.3d' % (a, b, c)

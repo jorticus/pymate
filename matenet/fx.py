@@ -8,7 +8,7 @@ __author__ = 'Jared'
 
 from value import Value
 from struct import Struct
-from matenet import MateNET
+from matenet import Mate
 
 class FXStatusPacket(object):
     fmt = Struct('>BBBBBBBBhBB')
@@ -81,7 +81,7 @@ class FXStatusPacket(object):
 """
         return fmt.format(**self.__dict__)
 
-class MateFX(MateNET):
+class MateFX(Mate):
     """
     Communicate with an FX unit attached to the MateNET bus
     """
@@ -120,149 +120,146 @@ class MateFX(MateNET):
             self.is_230v = status.is_230v
             return status
 
-    def get_register(self, addr):
-        return self.query(0, addr)
-
     @property
     def errors(self):
         """ Errors bit-field (See ERROR_* constants) """
-        return self.get_register(0x0039)
+        return self.query(0x0039)
 
     @property
     def warnings(self):
         """ Warnings bit-field (See WARN_* constants) """
-        return self.get_register(0x0059)
+        return self.query(0x0059)
 
     @property
     def inverter_control(self):
         """ Inverter mode (0: Off, 1: Search, 2: On) """
-        return self.get_register(0x003D)
+        return self.query(0x003D)
 
     @property
     def acin_control(self):
         """ AC IN mode (0: Drop, 1: Use) """
-        return self.get_register(0x003A)
+        return self.query(0x003A)
 
     @property
     def charge_control(self):
         """ Charger mode (0: Off, 1: Auto, 2: On) """
-        return self.get_register(0x003C)
+        return self.query(0x003C)
 
     @property
     def aux_control(self):
         """ AUX mode (0: Off, 1: Auto, 2: On) """
-        return self.get_register(0x005A)
+        return self.query(0x005A)
 
     @property
     def eq_control(self):
         """ Equalize mode (0:Off, ???) """
-        return self.get_register(0x0038)
+        return self.query(0x0038)
 
     @property
     def disconn_status(self):
-        return self.get_register(0x0084)
+        return self.query(0x0084)
 
     @property
     def sell_status(self):
-        return self.get_register(0x008F)
+        return self.query(0x008F)
 
     @property
     def temp_battery(self):
         """ Temperature of the battery (RAW, 0..255) """
-        return self.get_register(0x0032)
+        return self.query(0x0032)
 
     @property
     def temp_air(self):
         """ Temperature of the air (RAW, 0..255) """
-        return self.get_register(0x0033)
+        return self.query(0x0033)
 
     @property
     def temp_fets(self):
         """ Temperature of the MOSFET switches (RAW, 0..255) """
-        return self.get_register(0x0034)
+        return self.query(0x0034)
 
     @property
     def temp_capacitor(self):
         """ Temperature of the capacitor (RAW, 0..255) """
-        return self.get_register(0x0035)
+        return self.query(0x0035)
 
     @property
     def output_voltage(self):
-        x = self.get_register(0x002D)
+        x = self.query(0x002D)
         if self.is_230v:
             x *= 2.0
         return Value(x, units='V', resolution=0)
 
     @property
     def input_voltage(self):
-        x = self.get_register(0x002C)
+        x = self.query(0x002C)
         if self.is_230v:
             x *= 2.0
         return Value(x, units='V', resolution=0)
 
     @property
     def inverter_current(self):
-        x = self.get_register(0x006D)
+        x = self.query(0x006D)
         if self.is_230v:
             x /= 2.0
         return Value(x, units='A', resolution=0)
 
     @property
     def charger_current(self):
-        x = self.get_register(0x006A)
+        x = self.query(0x006A)
         if self.is_230v:
             x /= 2.0
         return Value(x, units='A', resolution=0)
 
     @property
     def input_current(self):
-        x = self.get_register(0x006C)
+        x = self.query(0x006C)
         if self.is_230v:
             x /= 2.0
         return Value(x, units='A', resolution=0)
 
     @property
     def sell_current(self):
-        x = self.get_register(0x006B)
+        x = self.query(0x006B)
         if self.is_230v:
             x /= 2.0
         return Value(x, units='A', resolution=0)
 
     @property
     def battery_actual(self):
-        return Value(self.get_register(0x0019), units='V', resolution=0)
+        return Value(self.query(0x0019), units='V', resolution=0)
 
     @property
     def battery_temp_compensated(self):
-        return Value(self.get_register(0x0016), units='V', resolution=0)
+        return Value(self.query(0x0016), units='V', resolution=0)
 
     @property
     def absorb_setpoint(self):
-        return Value(self.get_register(0x000B), units='V', resolution=0)
+        return Value(self.query(0x000B), units='V', resolution=0)
 
     @property
     def absorb_time_remaining(self):
-        return Value(self.get_register(0x0070), units='h', resolution=0)
+        return Value(self.query(0x0070), units='h', resolution=0)
 
     @property
     def float_setpoint(self):
-        return Value(self.get_register(0x000A), units='V', resolution=0)
+        return Value(self.query(0x000A), units='V', resolution=0)
 
     @property
     def float_time_remaining(self):
-        return Value(self.get_register(0x006E), units='h', resolution=0)
+        return Value(self.query(0x006E), units='h', resolution=0)
 
     @property
     def refloat_setpoint(self):
-        return Value(self.get_register(0x000D), units='V', resolution=0)
+        return Value(self.query(0x000D), units='V', resolution=0)
 
     @property
     def equalize_setpoint(self):
-        return Value(self.get_register(0x000C), units='V', resolution=0)
+        return Value(self.query(0x000C), units='V', resolution=0)
 
     @property
     def equalize_time_remaining(self):
-        return Value(self.get_register(0x0071), units='h', resolution=0)
+        return Value(self.query(0x0071), units='h', resolution=0)
 
 if __name__ == "__main__":
     status = FXStatusPacket.from_buffer('\x28\x0A\x00\x00\x0A\x00\x64\x00\x00\xDC\x14\x0A')

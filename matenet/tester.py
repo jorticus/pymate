@@ -271,6 +271,14 @@ class FXEmulator(MateTester):
             print "SCAN received, pretending to be an FX"
             return self.DEVICE
 
+        # Revision (2.3.4)
+        elif query.reg == 0x0002:
+            return 11
+        elif query.reg == 0x0003:
+            return 22
+        elif query.reg == 0x0004:
+            return 33
+
         ##### STATUS/FX/MODE #####
         # Inverter control
         elif query.reg == 0x003D:
