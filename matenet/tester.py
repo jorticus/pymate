@@ -120,7 +120,7 @@ class MXEmulator(MateTester):
         The MATE wants a status packet, send it a dummy status packet
         to see the effect of various values
         """
-        print "Received status packet, sending dummy data"
+        print "Received status packet, sending dummy data. payload:", packet
 
         self.send_packet(
             '\x81'  # Ah (upper)
@@ -228,6 +228,47 @@ class MXEmulator(MateTester):
         else:
             return super(MXEmulator, self).process_query(port, query)
 
+class FXEmulator(MateTester):
+    """
+    Emulates an FX inverter, outputting dummy data
+    so we can see how the MATE unit responds
+    """
+    DEVICE = MateNET.DEVICE_FX
+
+    def packet_received(self, packet):
+        # Let the superclass handle packets first
+        handled = super(FXEmulator, self).packet_received(packet)
+
+        # Unknown packet, try handle it ourselves:
+        if not handled:
+            _, ptype, _ = packet
+            if ptype == MateNET.TYPE_STATUS:
+                self.packet_status(packet)
+                return True
+            else:
+                print "Received:", packet
+                return False
+
+    def packet_status(self, packet):
+        """
+        The MATE wants a status packet, send it a dummy status packet
+        to see the effect of various values
+        """
+        print "Received status packet, sending dummy data. payload:", packet
+
+        self.send_packet(
+            '\x02\x28\x0A\x00\x00\x0A\x00\x64\x00\x00\xDC\x14\x0A'
+        )
+
+    def process_query(self, port, query):
+        """
+        The MATE wants to get the value of a register
+        """
+        # Get device type
+        if query.reg == 0x0000:
+            print "SCAN received, pretending to be an FX"
+            return self.DEVICE
+        return 0
 
 class HubEmulator(MateTester):
     """
@@ -293,7 +334,10 @@ class HubEmulator(MateTester):
 
 
 if __name__ == "__main__":
-    unit = HubEmulator('COM8')
+    comport = 'COM8'
+    #unit = HubEmulator(comport)
+    #unit = MXEmulator(comport)
+    unit = FXEmulator(comport)
 
     print "Running"
     unit.run()
