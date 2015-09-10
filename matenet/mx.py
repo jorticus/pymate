@@ -70,10 +70,11 @@ class MateMX(MateNET):
         Request a status packet from the controller
         :return: A MateStatusPacket
         """
+        resp = self.send(MateNET.TYPE_STATUS, '\x00\x01\x00\xFF')
+        # TODO: Unsure what the payload is supposed to do
 
-        self._send('\x00\x04\x00\x01\x00\x00\x00')
-        data = self._recv()
-        return MXStatusPacket.from_buffer(data[1:])
+        if resp:
+            return MXStatusPacket.from_buffer(resp[1:])
 
 
 if __name__ == "__main__":

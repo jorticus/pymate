@@ -17,7 +17,7 @@ from cstruct import struct
 
 from util import bin2hexstr, hexstr2bin
 
-QueryPacket = struct('>HBB', ('reg', 'param1', 'param2'))
+
 
 
 class MateTester(MateNET):
@@ -77,7 +77,7 @@ class MateTester(MateNET):
         The MATE wants to query a register
         """
         port, _, payload = packet
-        query = QueryPacket.from_buffer(payload)
+        query = MateNET.QueryPacket.from_buffer(payload)
         print "Query:", query
 
         result = self.process_query(port, query)
@@ -141,7 +141,7 @@ class MXEmulator(MateTester):
         TODO: I don't know what format the MATE expects - need to capture some field data
         """
         _, _, payload = packet
-        query = QueryPacket.from_buffer(payload)
+        query = MateNET.QueryPacket.from_buffer(payload)
         print "Note: Log emulation not yet implemented"
 
     def process_query(self, port, query):

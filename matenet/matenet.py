@@ -33,9 +33,9 @@ class MateNET(object):
     This class only handles the low level protocol,
     it does not care what is attached to the bus.
     """
-    ScanPacket = struct('BBBB', ('a','b','c','d')) # TODO: What does each field represent?
-    CommandPacket = None
-    StatusPacket = None
+    TxPacket = struct('>BB4s', ('port', 'ptype', 'payload'))  # Payload is always 4 bytes?
+    QueryPacket = struct('>HBB', ('reg', 'param1', 'param2'))
+    QueryResponse = struct('>H', ('value',))
 
     DEVICE_HUB = 1
     DEVICE_FX = 2
@@ -121,6 +121,39 @@ class MateNET(object):
 
         return MateNET._parse_packet(rawdata)
 
+    def send(self, ptype, payload, port=0):
+        """
+        Send a MateNET packet to the bus (as if it was sent by a MATE unit) and return the response
+        :param port: Port to send to, if a hub is present (0 if no hub or talking to the hub)
+        :param ptype: Type of the packet
+        :param payload: Payload to send (str)
+        :return: The raw response (str)
+        """
+        assert isinstance(payload, str) and len(payload) == 4  # True from what I can tell
+
+        packet = MateNET.TxPacket(port, ptype, payload)
+        self._send(packet.to_buffer())
+
+        # Read the response
+        data = self._recv()
+        if not data:
+            return None
+
+        # Validation
+        if len(data) < 2:
+            raise RuntimeError("Error receiving packet - not enough data received")
+
+        if data[0] != 0x03:  # Pretty sure this is always 0x03
+            raise RuntimeError("Error receiving packet - invalid header")
+        return data[1:]
+
+    def query(self, port, reg, param1=0, param2=0):
+        packet = MateNET.QueryPacket(reg, param1, param2)
+        resp = self.send(port, MateNET.TYPE_QUERY, packet.to_buffer())
+        if resp:
+            response = MateNET.QueryResponse.from_buffer(resp)
+            return response.value
+
 
 class Mate(MateNET):
     """
@@ -129,9 +162,11 @@ class Mate(MateNET):
     def __init__(self, comport):
         super(Mate, self).__init__(comport)
 
-    def scan(self):
-        self._send('\x00\x02\x00\x00\x00\x00')
-        data = self._recv(16)
-        print "scan:", data
-        # TODO: What to do with the result?
-        # TODO: Return the detected unit type (MX/FX/etc) ??
+    def scan(self, port):
+        """
+        Scan for device attached to the specified port
+        :param port: int, 0-10 (root:0)
+        :return: int, the type of device that is attached (see MateNET.DEVICE_*)
+        """
+        result = self.query(port, 0x00)
+        return result
