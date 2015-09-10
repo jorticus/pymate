@@ -24,6 +24,8 @@
 __author__ = 'Jared'
 
 from serial import Serial, PARITY_SPACE, PARITY_MARK
+from cstruct import struct
+from util import bin2hexstr, hexstr2bin
 
 class MateNET(object):
     """
@@ -31,6 +33,18 @@ class MateNET(object):
     This class only handles the low level protocol,
     it does not care what is attached to the bus.
     """
+    ScanPacket = struct('BBBB', ('a','b','c','d')) # TODO: What does each field represent?
+    CommandPacket = None
+    StatusPacket = None
+
+    DEVICE_FX = 2
+    DEVICE_MX = 3
+
+    TYPE_QUERY = 2
+    TYPE_CONTROL = 3
+    TYPE_STATUS = 4
+    TYPE_LOG = 22
+
     def __init__(self, comport):
         self.ser = Serial(comport, 9600, parity=PARITY_SPACE)
         self.ser.setTimeout(1.0)
@@ -102,6 +116,7 @@ class MateNET(object):
             rawdata += b
 
         return MateNET._parse_packet(rawdata)
+
 
 class Mate(MateNET):
     """
