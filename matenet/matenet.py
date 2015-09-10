@@ -33,7 +33,7 @@ class MateNET(object):
     This class only handles the low level protocol,
     it does not care what is attached to the bus.
     """
-    TxPacket = struct('>BB4s', ('port', 'ptype', 'payload'))  # Payload is always 4 bytes?
+    TxPacket = struct('>BBHBB', ('port', 'ptype', 'addr', 'param1', 'param2'))  # Payload is always 4 bytes?
     QueryPacket = struct('>HBB', ('reg', 'param1', 'param2'))
     QueryResponse = struct('>H', ('value',))
 
@@ -121,7 +121,7 @@ class MateNET(object):
 
         return MateNET._parse_packet(rawdata)
 
-    def send(self, ptype, payload, port=0):
+    def send(self, ptype, addr, param1=0, param2=0, port=0):
         """
         Send a MateNET packet to the bus (as if it was sent by a MATE unit) and return the response
         :param port: Port to send to, if a hub is present (0 if no hub or talking to the hub)
@@ -129,9 +129,8 @@ class MateNET(object):
         :param payload: Payload to send (str)
         :return: The raw response (str)
         """
-        assert isinstance(payload, str) and len(payload) == 4  # True from what I can tell
 
-        packet = MateNET.TxPacket(port, ptype, payload)
+        packet = MateNET.TxPacket(port, ptype, addr, param1, param2)
         self._send(packet.to_buffer())
 
         # Read the response
