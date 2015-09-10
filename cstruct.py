@@ -76,8 +76,7 @@ def struct(fmt, fields):
             Convert the struct into a packed data format
             """
             values = [getattr(self, name) for name in self._fields]
-            buf = self._fmt.pack(*values)
-            return [ord(c) for c in buf]
+            return self._fmt.pack(*values)
 
         def __repr__(self):
             return "struct:%s" % self.__dict__
