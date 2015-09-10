@@ -60,6 +60,62 @@ class MXStatusPacket(object):
 """
         return fmt.format(**self.__dict__)
 
+class MXLogPagePacket(object):
+    fmt = Struct('>BBBBBBBBBBBBBB')
+
+    def __init__(self):
+        self.day = None
+        self.amp_hours = None
+        self.kilowatt_hours = None
+        self.volts_peak = None
+        self.amps_peak = None
+        self.kilowatts_peak = None
+        self.bat_min = None
+        self.bat_max = None
+        self.absorb_time = None
+        self.float_time = None
+
+    @classmethod
+    def from_buffer(cls, data):
+        values = cls.fmt.unpack(data)
+        page = MXLogPagePacket()
+
+        # Parse the mess of binary values
+        page.amps_peak = values[0] | ((values[1] & 0x03) << 8)
+        page.bat_max = ((values[1] & 0xFC) >> 2) | ((values[2] & 0x0F) << 6)
+        page.bat_min = ((values[9] & 0xC0) >> 6) | (values[10] << 2) | ((values[11] & 0x03) << 10)
+        page.kilowatt_hours = ((values[2] & 0xF0) >> 4) | (values[3] << 4)
+        page.amp_hours = values[8] | ((values[9] & 0x3F) << 8)
+        page.volts_peak = values[4]
+        page.amps_peak = values[0] | ((values[1] & 0x03) << 8)
+        page.absorb_time = values[5] | ((values[6] & 0x0F) << 8)
+        page.float_time = ((values[6] & 0xF0) >> 4) | (values[7] << 4)
+        page.kilowatts_peak = ((values[12] & 0xFC) >> 2) | (values[11] << 6)
+        page.day = values[13]
+
+        # Convert to human-readable values
+        page.bat_max = Value(page.bat_max / 10.0, units='V', resolution=1)
+        page.bat_min = Value(page.bat_min / 10.0, units='V', resolution=1)
+        page.volts_peak = Value(page.volts_peak, units='Vpk')
+        page.amps_peak = Value(page.amps_peak / 10.0, units='Apk', resolution=1)
+        page.kilowatts_peak = Value(page.kilowatts_peak / 1000.0, units='kWpk', resolution=3)
+        page.amp_hours = Value(page.amp_hours, units='Ah')
+        page.kilowatt_hours = Value(page.kilowatt_hours / 10.0, units='kWh', resolution=1)
+        page.absorb_time = Value(page.absorb_time, units='min')
+        page.float_time = Value(page.float_time, units='min')
+        return page
+
+    def __str__(self):
+        fmt = \
+"""MX Log Page:
+    Day: -{day}
+    {amp_hours} {kilowatt_hours}
+    {volts_peak} {amps_peak} {kilowatts_peak}
+    Min: {bat_min} Max: {bat_max}
+    Absorb: {absorb_time} Float: {float_time}
+"""
+        return fmt.format(**self.__dict__)
+
 
 class MateMX(Mate):
     """
@@ -76,6 +132,16 @@ class MateMX(Mate):
 
         if resp:
             return MXStatusPacket.from_buffer(resp[1:])
+
+    def get_logpage(self, day):
+        """
+        Get a log page for the specified day
+        :param day: The day, counting backwards from today (0:Today, 0..255)
+        :return: A MXLogPagePacket
+        """
+        resp = self.send(Mate.TYPE_LOG, addr=0, param=day)
+        if resp:
+            return MXLogPagePacket.from_buffer(resp[1:])
 
     @property
     def charger_watts(self):
@@ -144,3 +210,7 @@ class MateMX(Mate):
 if __name__ == "__main__":
     status = MXStatusPacket.from_buffer('\x85\x82\x85\x00\x69\x3f\x01\x00\x1d\x01\x0c\x02\x6a')
     print status
+
+    #logpage = MXLogPagePacket.from_buffer('\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10\x01')
+    logpage = MXLogPagePacket.from_buffer('\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01')
+    print logpage

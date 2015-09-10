@@ -138,11 +138,15 @@ class MXEmulator(MateTester):
     def packet_log(self, packet):
         """
         The MATE wants to see a log entry
-        TODO: I don't know what format the MATE expects - need to capture some field data
         """
         _, _, payload = packet
         query = MateNET.QueryPacket.from_buffer(payload)
-        print "Note: Log emulation not yet implemented"
+        day = query.param
+        print "Get log entry (day -%d)" % day
+        #self.send_packet('\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10' + chr(day))
+        self.send_packet('\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF' + chr(day))
+        #self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x48' + chr(day))
+
 
     def process_query(self, port, query):
         """
@@ -452,8 +456,8 @@ class HubEmulator(MateTester):
 if __name__ == "__main__":
     comport = 'COM8'
     #unit = HubEmulator(comport)
-    #unit = MXEmulator(comport)
-    unit = FXEmulator(comport)
+    unit = MXEmulator(comport)
+    #unit = FXEmulator(comport)
 
     print "Running"
     unit.run()
@@ -478,4 +482,4 @@ if __name__ == "__main__":
 
 
 # Also, we intermittently receive the following packet:
-#Received: (0, 3, [64, 4, 146, 233])
+#Received: (0, 3, [64, 4, 146, 233]) 40 04 92 E9
