@@ -115,7 +115,7 @@ class MateFX(Mate):
         Request a status packet from the inverter
         :return: A FXStatusPacket
         """
-        resp = self.send(MateNET.TYPE_STATUS, addr=1)
+        resp = self.send(Mate.TYPE_STATUS, addr=1)
         if resp:
             status = FXStatusPacket.from_buffer(resp[1:])
             self.is_230v = status.is_230v

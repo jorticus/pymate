@@ -70,9 +70,9 @@ class MateMX(Mate):
         Request a status packet from the controller
         :return: A MXStatusPacket
         """
-        resp = self.send(MateNET.TYPE_STATUS, addr=1, param2=0x00)
+        resp = self.send(Mate.TYPE_STATUS, addr=1, param=0x00)
         # TODO: Unsure what the payload is supposed to do
-        # param2 is 00 with no hub attached, or FF with a hub attached?
+        # param is 00 with no hub attached, or FF with a hub attached?
 
         if resp:
             return MXStatusPacket.from_buffer(resp[1:])

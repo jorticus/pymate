@@ -25,7 +25,6 @@ __author__ = 'Jared'
 
 from serial import Serial, PARITY_SPACE, PARITY_MARK
 from cstruct import struct
-from util import bin2hexstr, hexstr2bin
 
 class MateNET(object):
     """
@@ -121,7 +120,7 @@ class MateNET(object):
 
         return MateNET._parse_packet(rawdata)
 
-    def send(self, ptype, addr, param1=0, param2=0, port=0):
+    def send(self, ptype, addr, param=0, port=0):
         """
         Send a MateNET packet to the bus (as if it was sent by a MATE unit) and return the response
         :param port: Port to send to, if a hub is present (0 if no hub or talking to the hub)
@@ -130,7 +129,7 @@ class MateNET(object):
         :return: The raw response (str)
         """
 
-        packet = MateNET.TxPacket(port, ptype, addr, param1, param2)
+        packet = MateNET.TxPacket(port, ptype, addr, param)
         self._send(packet.to_buffer())
 
         # Read the response
