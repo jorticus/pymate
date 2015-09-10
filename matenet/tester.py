@@ -257,7 +257,9 @@ class FXEmulator(MateTester):
         print "Received status packet, sending dummy data. payload:", packet
 
         self.send_packet(
-            '\x02\x28\x0A\x00\x00\x0A\x00\x64\x00\x00\xDC\x14\x0A'
+            '\x02\x28\x0A'
+            +'\x02\x01'
+            +'\x0A\x00\x64\x00\x00\xDC\x14\x0A'
         )
 
     def process_query(self, port, query):
@@ -268,7 +270,85 @@ class FXEmulator(MateTester):
         if query.reg == 0x0000:
             print "SCAN received, pretending to be an FX"
             return self.DEVICE
-        return 0
+
+        ##### STATUS/FX/METER #####
+        # Output voltage (VAC) (*2)
+        elif query.reg == 0x002D:
+            return 11  # 22V
+        # Input voltage (VAC) (*2)
+        elif query.reg == 0x002C:
+            return 22  # 44V
+        # Inverter current (AAC) (/2)
+        elif query.reg == 0x006D:
+            return 33  # 16.5A
+        # Charger current (AAC) (/2)
+        elif query.reg == 0x006A:
+            return 44  # 22.0A
+        # Input current (AAC) (/2)
+        elif query.reg == 0x006C:
+            return 55  # 27.5A
+        # Sell current (AAC) (/2)
+        elif query.reg == 0x006B:
+            return 66  # 33.0A
+
+        ##### STATUS/FX/BATT #####
+        # Battery actual (VDC)
+        elif query.reg == 0x0019:
+            return 77
+        # Battery temp compensated (VDC)
+        elif query.reg == 0x0016:
+            return 88
+        # Absorb setpoint (VDC)
+        elif query.reg == 0x000B:
+            return 99
+        # Absorb time remaining (Hours)
+        elif query.reg == 0x0070:
+            return 111
+        # Float setpoint (VDC)
+        elif query.reg == 0x000A:
+            return 122
+        # Float time remaining (Hours)
+        elif query.reg == 0x006E:
+            return 133
+        # Re-float setpoint (VDC)
+        elif query.reg == 0x000D:
+            return 144
+        # Equalize setpoint (VDC)
+        elif query.reg == 0x000C:
+            return 155
+        # Equalize time remaining (Hours)
+        elif query.reg == 0x0071:
+            return 166
+        # Battery temp (Not in degree C/F)
+        elif query.reg == 0x0032:
+            return 177
+        # Warnings > Airtemp (0-255)
+        elif query.reg == 0x0033:
+            return 200
+        # Warnings > FET temp
+        elif query.reg == 0x0034:
+            return 211
+        # Warnings > Cap temp
+        elif query.reg == 0x0035:
+            return 222
+
+        ##### STATUS/FX #####
+        # Errors
+        elif query.reg == 0x0039:
+            return 0xFF
+        # Warnings
+        elif query.reg == 0x0059:
+            return 0xFF
+
+        # Disconn
+        elif query.reg == 0x0084:
+            return 0xFF
+        # Sell
+        elif query.reg == 0x008F:
+            return 0xFF  # Stop sell reason
+
+        else:
+            return super(FXEmulator, self).process_query(port, query)
 
 class HubEmulator(MateTester):
     """
