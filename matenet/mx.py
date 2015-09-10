@@ -77,9 +77,80 @@ class MateMX(MateNET):
         if resp:
             return MXStatusPacket.from_buffer(resp[1:])
 
+    def get_register(self, addr):
+        return self.query(0, addr)
+
+    @property
+    def charger_watts(self):
+        return Value(self.get_register(0x016A), units='W', resolution=0)
+
+    @property
+    def charger_kwh(self):
+        return Value(self.get_register(0x01EA) / 10.0, units='kWh', resolution=1)
+
+    @property
+    def charger_amps_dc(self):
+        return Value(self.get_register(0x01C7) - 128, units='A', resolution=0)
+
+    @property
+    def bat_voltage(self):
+        return Value(self.get_register(0x0008) / 10.0, units='V', resolution=1)
+
+    @property
+    def panel_voltage(self):
+        return Value(self.get_register(0x01C6), units='V', resolution=0)
+
+    @property
+    def revision(self):
+        a = self.get_register(0x0002)
+        b = self.get_register(0x0003)
+        c = self.get_register(0x0004)
+        return '%.3d.%.3d.%.3d' % (a, b, c)
+
+    @property
+    def status(self):
+        return self.get_register(0x01C8)
+
+    @property
+    def aux_relay_mode(self):
+        x = self.get_register(0x01C9)
+        mode = x & 0x7F
+        on = (x & 0x80 == 0x80)
+        return mode, on
+
+    @property
+    def max_battery(self):
+        return Value(self.get_register(0x000F) / 10.0, units='V', resolution=1)
+
+    @property
+    def voc(self):
+        return Value(self.get_register(0x0010) / 10.0, resolution=1)
+
+    @property
+    def max_voc(self):
+        return Value(self.get_register(0x0012) / 10.0, resolution=1)
+
+    @property
+    def total_kwh_dc(self):
+        return Value(self.get_register(0x0013), units='kWh', resolution=0)
+
+    @property
+    def total_kah(self):
+        return Value(self.get_register(0x0014), units='kAh', resolution=1)
+
+    @property
+    def max_wattage(self):
+        return Value(self.get_register(0x0015), units='W', resolution=0)
+
+    @property
+    def setpt_absorb(self):
+        return Value(self.get_register(0x0170) / 10.0, units='V', resolution=1)
+
+    @property
+    def setpt_float(self):
+        return Value(self.get_register(0x0172) / 10.0, units='V', resolution=1)
 
 
 if __name__ == "__main__":
     status = MXStatusPacket.from_buffer('\x85\x82\x85\x00\x69\x3f\x01\x00\x1d\x01\x0c\x02\x6a')
     print status
-    
