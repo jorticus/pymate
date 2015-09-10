@@ -1,4 +1,4 @@
-# pyMate controller (raw MateNET access)
+# pyMATE controller (raw MateNET access)
 # Author: Jared Sanson <jared@jared.geek.nz>
 #
 # Emulates an Outback MATE controller panel, allowing direct communication with
@@ -23,58 +23,33 @@
 
 __author__ = 'Jared'
 
-from cstruct import struct
-from value import Value
 from serial import Serial, PARITY_SPACE, PARITY_MARK
 
-# Raw mate status packet
-_MateStatusStruct = struct('>B4sBBBHHHH', (
-    'sop',              # Start-of-packet? has the 9th bit set to denote the start of the packet
-    'q',                # TODO: Unsure what this contains
-    'amp_hours',        # Daily accumulated amp-hours (0-255 AH)
-    'kilowatt_peak',    # Daily kilowatts-peak (hundredths: 0.00-2.55 kW)
-    'status',           # Status (Same as the MATE serial protocol)
-    'kilowatt_hours',   # Kilowatt-hours (tenths: 0.0-6553.5 kWh)
-    'v_bat',            # Battery/Out voltage (tenths: 0.0-6553.5 V)
-    'v_pv'              # PV/In voltage (tenths: 0.0-6553.5 V)
-))
-
-class MateStatusPacket(_MateStatusStruct):
-    STATUS_SLEEPING = 0
-    STATUS_FLOATING = 1
-    STATUS_BULK = 2
-    STATUS_ABSORB = 3
-    STATUS_EQUALIZE = 4
-
-    @classmethod
-    def from_buffer(cls, data):
-        raw = super(MateStatusPacket, cls).from_buffer(data)
-        # Wrap members in Value objects to make it more human-readable
-        raw.amp_hours       = Value(raw.amp_hours,             units='Ah', resolution=0)
-        raw.kilowatt_peak   = Value(raw.kilowatt_peak / 100.0, units='kW', resolution=2)
-        raw.kilowatt_hours  = Value(raw.kilowatt_hours / 10.0, units='kW', resolution=1)
-        raw.v_bat           = Value(raw.v_bat / 10.0,          units='V',  resolution=1)
-        raw.v_pv            = Value(raw.v_pv / 10.0,           units='V',  resolution=1)
-        # TODO: What does the 'q' member contain?
-        return raw
-
-class MateInterface(object):
+class MateNET(object):
     """
-    Python interface for the MATE RJ45 bus
-    Supports:
-      - Solar Charger (Outback MATE)
+    Interface for the MATE RJ45 bus ("MateNET")
+    This class only handles the low level protocol,
+    it does not care what is attached to the bus.
     """
     def __init__(self, comport):
         self.ser = Serial(comport, 9600, parity=PARITY_SPACE)
+        self.ser.setTimeout(1.0)
 
     def _send(self, data):
+        """
+        Send a packet to the MateNET bus
+        :param data: str containing the raw data to send (excluding checksum)
+        """
         checksum = self._calc_checksum(data)
         footer = chr((checksum >> 8) & 0xFF) + chr(checksum & 0xFF)
 
+        # First byte has bit8 set (address byte)
         self.ser.setParity(PARITY_MARK)
-        self.ser.write('\x00')
+        self.ser.write(data[0])
+
+        # Rest of the bytes have bit8 cleared (data byte)
         self.ser.setParity(PARITY_SPACE)
-        self.ser.write(data + footer)
+        self.ser.write(data[1:] + footer)
 
     @staticmethod
     def _calc_checksum(data):
@@ -84,7 +59,7 @@ class MateInterface(object):
         including the 9-bit start-of-packet byte (though the 9th bit is not counted)
         """
         return sum(ord(c) for c in data) % 0xFFFF
-        
+
     @staticmethod
     def _parse_packet(data):
         """
@@ -101,32 +76,43 @@ class MateInterface(object):
         # Checksum
         packet = data[0:-2]
         expected_chksum = (ord(data[-2]) << 8) | ord(data[-1])
-        actual_chksum = MateInterface._calc_checksum(packet)
+        actual_chksum = MateNET._calc_checksum(packet)
         if actual_chksum != expected_chksum:
             raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:%d, Actual:%d)" % (expected_chksum, actual_chksum))
         return packet
 
-    def _recv(self):
-        rawdata = [] # TODO
-        return MateInterface._parse_packet(rawdata)
-
-    def get_mxstatus(self):
+    def _recv(self, timeout=1.0):
         """
-        Request a status packet from the controller
-        :return: A MateStatusPacket
+        Receive a packet from the MateNET bus, waiting if necessary
+        :param timeout: seconds to wait until returning, 0 to return immediately, None to block indefinitely
+        :return: str if packet received, None if timeout
         """
-        self._send('\x04\x00\x01\x00\x00\x00')
-        data = self._recv()
-        return MateStatusPacket.from_buffer(data)
+        # Wait for packet
+        # TODO: Check parity?
+        self.ser.setTimeout(timeout)
+        rawdata = self.ser.read(1)
+        if not rawdata:
+            return None
 
-def parse_hexstr(s):
-    return ''.join([chr(int(x, 16)) for x in s.split()])
+        # Get rest of packet (timeout set to 10ms to detect end of packet)
+        self.ser.setTimeout(0.01)
+        b = 1
+        while b:
+            b = self.ser.read()
+            rawdata += b
 
+        return MateNET._parse_packet(rawdata)
 
-if __name__ == "__main__":
-    # Testing
-    data = parse_hexstr('03 81 80 82 00 6A 3F 01 00 1D 00 FF 02 40 03 8E')
-    packet = MateInterface._parse_packet(data)
-    status = MateStatusPacket.from_buffer(packet)
-    print "status:", status
+class Mate(MateNET):
+    """
+    Emulates the MATE controller, allows communication with any attached devices
+    """
+    def __init__(self, comport):
+        super(Mate, self).__init__(comport)
 
+    def scan(self):
+        self._send('\x00\x02\x00\x00\x00\x00')
+        data = self._recv(16)
+        print "scan:", data
+        # TODO: What to do with the result?
+        # TODO: Return the detected unit type (MX/FX/etc) ??

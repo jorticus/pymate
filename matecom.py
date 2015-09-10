@@ -35,7 +35,7 @@ class MXStatusPacket(object):
             raise Exception("Checksum error in received packet")
 
 
-class MateController(object):
+class MateCom(object):
     """
     Interfaces with the MATE controller on a specific COM port.
     Must be a proper RS232 port with RTS/DTR pins.
@@ -56,6 +56,6 @@ class MateController(object):
 
 if __name__ == "__main__":
     # Test
-    mate = MateController('COM1')
+    mate = MateCom('COM1')
     status = mate.read_status()
     print status.__dict__
