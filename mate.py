@@ -4,7 +4,7 @@
 # Allows communication with an Outback Systems MATE controller panel,
 # which provides diagnostic information of current charge state and power use
 #
-# Currently only supports an MX status page (from an Outback MX charge controller)
+# Currently only supports the MX status page (from an Outback MX charge controller)
 
 import serial
 from value import Value
