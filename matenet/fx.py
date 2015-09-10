@@ -3,6 +3,7 @@
 #
 # Provides access to an Outback FX inverter
 #
+# UNTESTED - implementation determined by poking values at a MATE controller
 
 __author__ = 'Jared'
 
@@ -134,26 +135,41 @@ class MateFX(Mate):
     def inverter_control(self):
         """ Inverter mode (0: Off, 1: Search, 2: On) """
         return self.query(0x003D)
+    @inverter_control.setter
+    def inverter_control(self, value):
+        self.control(0x003D, value)
 
     @property
     def acin_control(self):
         """ AC IN mode (0: Drop, 1: Use) """
         return self.query(0x003A)
+    @acin_control.setter
+    def acin_control(self, value):
+        self.control(0x003A, value)
 
     @property
     def charge_control(self):
         """ Charger mode (0: Off, 1: Auto, 2: On) """
         return self.query(0x003C)
+    @charge_control.setter
+    def charge_control(self, value):
+        self.control(0x003C, value)
 
     @property
     def aux_control(self):
         """ AUX mode (0: Off, 1: Auto, 2: On) """
         return self.query(0x005A)
+    @aux_control.setter
+    def aux_control(self, value):
+        self.control(0x003C, value)
 
     @property
     def eq_control(self):
         """ Equalize mode (0:Off, ???) """
         return self.query(0x0038)
+    @eq_control.setter
+    def eq_control(self, value):
+        self.control(0x003C, value)
 
     @property
     def disconn_status(self):

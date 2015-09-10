@@ -177,6 +177,19 @@ class Mate(MateNET):
             response = MateNET.QueryResponse.from_buffer(resp)
             return response.value
 
+    def control(self, reg, value, port=0):
+        """
+        Control a register
+        :param reg: The register (16-bit address)
+        :param value: The value (16-bit uint)
+        :param port: Port (0-10)
+        :return: ???
+        """
+        packet = MateNET.QueryPacket(reg, value)
+        resp = self.send(port, MateNET.TYPE_CONTROL, packet.to_buffer())
+        if resp:
+            return None  # TODO: What kind of response do we get from a control packet?
+
     @property
     def revision(self):
         """
