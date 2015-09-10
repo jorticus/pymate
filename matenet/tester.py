@@ -10,14 +10,8 @@
 #
 __author__ = 'Jared'
 
-from abc import abstractmethod
 from matenet import MateNET
 from struct import pack
-from cstruct import struct
-
-from util import bin2hexstr, hexstr2bin
-
-
 
 
 class MateTester(MateNET):
@@ -29,8 +23,7 @@ class MateTester(MateNET):
     def send_packet(self, payload):
         """
         Send a MateNET packet
-        :param ptype: Type of the packet (int)
-        :param payload: Packet payload (array of bytes)
+        :param payload: Packet payload (str)
         """
         data = chr(0x03) + payload  # TODO: not sure why 0x03 here
         self._send(data)
@@ -91,6 +84,7 @@ class MateTester(MateNET):
         print "Unknown query! (0x%.4x, port:%d)" % (query.reg, port)
         return 0
 
+
 class MXEmulator(MateTester):
     """
     Emulates an MX charge controller, outputting dummy data
@@ -124,15 +118,15 @@ class MXEmulator(MateTester):
 
         self.send_packet(
             '\x81'  # Ah (upper)
-            +'\x80' # In current
-            +'\x82' # Out current
-            +'\x00' # kWH (signed, upper)
-            +'\x00' # Ah (lower)
-            +'\x3F'
-            +'\x02\x01' # Status/Error
-            +'\xF0' # kWH (signed, lower)
-            +'\x03\xE7' # Bat voltage
-            +'\x27\x0F' # PV voltage
+            + '\x80'  # In current
+            + '\x82'  # Out current
+            + '\x00'  # kWH (signed, upper)
+            + '\x00'  # Ah (lower)
+            + '\x3F'
+            + '\x02\x01'  # Status/Error
+            + '\xF0'  # kWH (signed, lower)
+            + '\x03\xE7'  # Bat voltage
+            + '\x27\x0F'  # PV voltage
         )
 
     def packet_log(self, packet):
@@ -143,10 +137,9 @@ class MXEmulator(MateTester):
         query = MateNET.QueryPacket.from_buffer(payload)
         day = query.param
         print "Get log entry (day -%d)" % day
-        #self.send_packet('\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10' + chr(day))
-        self.send_packet('\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF' + chr(day))
+        self.send_packet('\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10' + chr(day))
+        #self.send_packet('\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF' + chr(day))
         #self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x48' + chr(day))
-
 
     def process_query(self, port, query):
         """
@@ -185,7 +178,7 @@ class MXEmulator(MateTester):
         ##### STATUS/CC/MODE #####
         # Mode (0..4)
         elif query.reg == 0x01C8:
-            return 4 # Equalize
+            return 4  # Equalize
         # Aux Relay Mode / Aux Relay State
         elif query.reg == 0x01C9:
             # bit 7: relay state
@@ -232,6 +225,7 @@ class MXEmulator(MateTester):
         else:
             return super(MXEmulator, self).process_query(port, query)
 
+
 class FXEmulator(MateTester):
     """
     Emulates an FX inverter, outputting dummy data
@@ -262,8 +256,8 @@ class FXEmulator(MateTester):
 
         self.send_packet(
             '\x02\x28\x0A'
-            +'\x02\x01'
-            +'\x0A\x00\x64\x00\x00\xDC\x14\x0A'
+            + '\x02\x01'
+            + '\x0A\x00\x64\x00\x00\xDC\x14\x0A'
         )
 
     def process_query(self, port, query):
@@ -390,6 +384,7 @@ class FXEmulator(MateTester):
         else:
             return super(FXEmulator, self).process_query(port, query)
 
+
 class HubEmulator(MateTester):
     """
     Emulate a Hub, to see how it works
@@ -452,7 +447,6 @@ class HubEmulator(MateTester):
         return 0
 
 
-
 if __name__ == "__main__":
     comport = 'COM8'
     #unit = HubEmulator(comport)
@@ -463,23 +457,5 @@ if __name__ == "__main__":
     unit.run()
 
 
-# STATUS/CC/LOG1
-# Contains AH/kWH/Vp/Ap/kWp, min/max battery voltage, absorb/float time
-#Received: (0, 22, [0, 0, 0, 0])
-#Received: (0, 22, [0, 0, 0, 0])
-#Received: (0, 22, [0, 0, 0, 4])
-#Received: (0, 22, [0, 0, 0, 4])
-#                            ^day
-
-# AC INPUT CONTROL
-# Drop: Received: (1, 3, [0, 58, 0, 0])
-# Use: Received: (1, 3, [0, 58, 0, 1])
-
-# INVERTER CONTROL
-# OFF: Received: (255, 3, [0, 61, 0, 0])
-# SRCH: Received: (255, 3, [0, 61, 0, 1])
-# ON: Received: (255, 3, [0, 61, 0, 2])
-
-
-# Also, we intermittently receive the following packet:
+# TODO: we intermittently receive the following packet:
 #Received: (0, 3, [64, 4, 146, 233]) 40 04 92 E9

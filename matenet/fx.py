@@ -11,6 +11,7 @@ from value import Value
 from struct import Struct
 from matenet import Mate
 
+
 class FXStatusPacket(object):
     fmt = Struct('>BBBBBBBBhBB')
 
@@ -74,13 +75,13 @@ class FXStatusPacket(object):
         return "<FXStatusPacket>"
 
     def __str__(self):
-        fmt = \
-"""FX Status:
+        fmt = """FX Status:
     Battery: {bat_voltage}
     Inv: {inv_power} Zer: {zer_power}
     Chg: {chg_power} Buy: {buy_power}
 """
         return fmt.format(**self.__dict__)
+
 
 class MateFX(Mate):
     """
@@ -276,6 +277,7 @@ class MateFX(Mate):
     @property
     def equalize_time_remaining(self):
         return Value(self.query(0x0071), units='h', resolution=0)
+
 
 if __name__ == "__main__":
     status = FXStatusPacket.from_buffer('\x28\x0A\x00\x00\x0A\x00\x64\x00\x00\xDC\x14\x0A')

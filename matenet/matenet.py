@@ -26,6 +26,7 @@ __author__ = 'Jared'
 from serial import Serial, PARITY_SPACE, PARITY_MARK
 from cstruct import struct
 
+
 class MateNET(object):
     """
     Interface for the MATE RJ45 bus ("MateNET")
@@ -95,7 +96,8 @@ class MateNET(object):
         expected_chksum = (ord(data[-2]) << 8) | ord(data[-1])
         actual_chksum = MateNET._calc_checksum(packet)
         if actual_chksum != expected_chksum:
-            raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:%d, Actual:%d)" % (expected_chksum, actual_chksum))
+            raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:%d, Actual:%d)"
+                               % (expected_chksum, actual_chksum))
         return packet
 
     def _recv(self, timeout=1.0):
@@ -125,7 +127,7 @@ class MateNET(object):
         Send a MateNET packet to the bus (as if it was sent by a MATE unit) and return the response
         :param port: Port to send to, if a hub is present (0 if no hub or talking to the hub)
         :param ptype: Type of the packet
-        :param payload: Payload to send (str)
+        :param param: Optional parameter (16-bit uint)
         :return: The raw response (str)
         """
 

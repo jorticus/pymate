@@ -10,6 +10,7 @@ from struct import Struct
 from value import Value
 from matenet import Mate
 
+
 class MXStatusPacket(object):
     fmt = Struct('>BbbbBBBBBHH')
 
@@ -52,13 +53,13 @@ class MXStatusPacket(object):
         return "<MXStatusPacket>"
 
     def __str__(self):
-        fmt = \
-"""MXStatus:
+        fmt = """MX Status:
     PV:  {pv_voltage} {pv_current}
     Bat: {bat_voltage} {bat_current}
     Today: {kilowatt_hours} {amp_hours}
 """
         return fmt.format(**self.__dict__)
+
 
 class MXLogPagePacket(object):
     fmt = Struct('>BBBBBBBBBBBBBB')
@@ -106,8 +107,7 @@ class MXLogPagePacket(object):
         return page
 
     def __str__(self):
-        fmt = \
-"""MX Log Page:
+        fmt = """MX Log Page:
     Day: -{day}
     {amp_hours} {kilowatt_hours}
     {volts_peak} {amps_peak} {kilowatts_peak}
@@ -127,7 +127,7 @@ class MateMX(Mate):
         :return: A MXStatusPacket
         """
         resp = self.send(Mate.TYPE_STATUS, addr=1, param=0x00)
-        # TODO: Unsure what the payload is supposed to do
+        # TODO: Unsure what addr/param are supposed to be
         # param is 00 with no hub attached, or FF with a hub attached?
 
         if resp:
