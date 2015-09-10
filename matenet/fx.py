@@ -134,6 +134,31 @@ class MateFX(MateNET):
         return self.get_register(0x0059)
 
     @property
+    def inverter_control(self):
+        """ Inverter mode (0: Off, 1: Search, 2: On) """
+        return self.get_register(0x003D)
+
+    @property
+    def acin_control(self):
+        """ AC IN mode (0: Drop, 1: Use) """
+        return self.get_register(0x003A)
+
+    @property
+    def charge_control(self):
+        """ Charger mode (0: Off, 1: Auto, 2: On) """
+        return self.get_register(0x003C)
+
+    @property
+    def aux_control(self):
+        """ AUX mode (0: Off, 1: Auto, 2: On) """
+        return self.get_register(0x005A)
+
+    @property
+    def eq_control(self):
+        """ Equalize mode (0:Off, ???) """
+        return self.get_register(0x0038)
+
+    @property
     def disconn_status(self):
         return self.get_register(0x0084)
 

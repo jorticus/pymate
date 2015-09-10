@@ -271,6 +271,34 @@ class FXEmulator(MateTester):
             print "SCAN received, pretending to be an FX"
             return self.DEVICE
 
+        ##### STATUS/FX/MODE #####
+        # Inverter control
+        elif query.reg == 0x003D:
+            # 0: OFF
+            # 1: Search
+            # 2: ON
+            return 1
+        # AC IN control
+        elif query.reg == 0x003A:
+            # 0: Drop
+            # 1: Use
+            return 1
+        # Charge control
+        elif query.reg == 0x003C:
+            # 0: Off
+            # 1: Auto
+            # 2: On
+            return 2
+        # AUX control
+        elif query.reg == 0x005A:
+            # 0: Off
+            # 1: Auto
+            # 2: On
+            return 1
+        # EQ enabled
+        elif query.reg == 0x0038:
+            return 0  # TODO: Can't get this to change the value??
+
         ##### STATUS/FX/METER #####
         # Output voltage (VAC) (*2)
         elif query.reg == 0x002D:
