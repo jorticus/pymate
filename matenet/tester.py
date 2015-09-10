@@ -51,13 +51,13 @@ class MateTester(MateNET):
 
     def run(self):
         while True:
-            try:
+            #try:
                 packet = self.recv_packet(timeout=5.0)
                 if packet:
                     self.packet_received(packet)
-            except Exception as e:
-                print e
-                continue
+            #except Exception as e:
+            #    print e
+            #    continue
 
     def packet_received(self, packet):
         """
@@ -83,7 +83,7 @@ class MateTester(MateNET):
         result = self.process_query(port, query)
         self.send_packet(pack('>H', result))
 
-    def process_query(self, query):
+    def process_query(self, port, query):
         """
         Query a register, and return the value to the MATE
         (Override this in your subclass)
@@ -226,7 +226,7 @@ class MXEmulator(MateTester):
             return 188
 
         else:
-            super(MXEmulator, self).process_query(query)
+            return super(MXEmulator, self).process_query(port, query)
 
 
 class HubEmulator(MateTester):
@@ -287,7 +287,8 @@ class HubEmulator(MateTester):
                 device = self.get_device_at_port(port)
                 if device:
                     # TODO: Unsure if port needs to be set to 0
-                    device.process_query(query)
+                    return device.process_query(port, query)
+        return 0
 
 
 
