@@ -37,6 +37,7 @@ class MateNET(object):
     CommandPacket = None
     StatusPacket = None
 
+    DEVICE_HUB = 1
     DEVICE_FX = 2
     DEVICE_MX = 3
 
@@ -46,8 +47,11 @@ class MateNET(object):
     TYPE_LOG = 22
 
     def __init__(self, comport):
-        self.ser = Serial(comport, 9600, parity=PARITY_SPACE)
-        self.ser.setTimeout(1.0)
+        if isinstance(comport, Serial):
+            self.ser = comport
+        else:
+            self.ser = Serial(comport, 9600, parity=PARITY_SPACE)
+            self.ser.setTimeout(1.0)
 
     def _send(self, data):
         """

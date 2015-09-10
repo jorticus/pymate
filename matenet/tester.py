@@ -10,9 +10,15 @@
 #
 __author__ = 'Jared'
 
+from abc import abstractmethod
 from matenet import MateNET
 from struct import pack
 from cstruct import struct
+
+from util import bin2hexstr, hexstr2bin
+
+QueryPacket = struct('>HBB', ('reg', 'param1', 'param2'))
+
 
 class MateTester(MateNET):
     """
@@ -43,174 +49,254 @@ class MateTester(MateNET):
         payload = [ord(c) for c in data[2:]]
         return port, ptype, payload
 
+    def run(self):
+        while True:
+            try:
+                packet = self.recv_packet(timeout=5.0)
+                if packet:
+                    self.packet_received(packet)
+            except Exception as e:
+                print e
+                continue
 
-from util import bin2hexstr, hexstr2bin
+    def packet_received(self, packet):
+        """
+        A packet has been received from the MATE.
+        Decode it and try to figure out what to do with it.
+        If we don't know what to do with it, return False and let any subclasses handle it
+        """
+        _, ptype, _ = packet
+        if ptype == MateNET.TYPE_QUERY:
+            self.packet_query(packet)
+            return True
+        else:
+            return False
 
-QueryPacket = struct('>HBB', ('reg', 'param1', 'param2'))
+    def packet_query(self, packet):
+        """
+        The MATE wants to query a register
+        """
+        port, _, payload = packet
+        query = QueryPacket.from_buffer(payload)
+        print "Query:", query
 
-def process_query(query):
-    # Scan?
-    if query.reg == 0x0000:
-        print "SCAN received, pretending to be an MX/CC"
-        return MateNET.DEVICE_MX
+        result = self.process_query(port, query)
+        self.send_packet(pack('>H', result))
 
-    ##### STATUS/CC/METER #####
-    # Charger Watts (1)
-    elif query.reg == 0x016A:
-        return 44
-    # Charger kWh (1/10)
-    elif query.reg == 0x01EA:
-        return 55
-    # Charger amps DC (-128..127, 0=128)
-    elif query.reg == 0x01c7:
-        return 128  # 0
-    # Battery voltage (1/10)
-    elif query.reg == 0x0008:
-        return 77
-    # Panel voltage (1)
-    elif query.reg == 0x01C6:
-        return 88
+    def process_query(self, query):
+        """
+        Query a register, and return the value to the MATE
+        (Override this in your subclass)
+        """
+        print "Unknown query! (0x%.4x, port:%d)" % (query.reg, port)
+        return 0
 
-    # Revision (2.3.4)
-    elif query.reg == 0x0002:
-        return 11
-    elif query.reg == 0x0003:
-        return 22
-    elif query.reg == 0x0004:
-        return 33
+class MXEmulator(MateTester):
+    """
+    Emulates an MX charge controller, outputting dummy data
+    so we can see how the MATE unit responds
+    """
+    DEVICE = MateNET.DEVICE_MX
 
-    ##### STATUS/CC/MODE #####
-    # Mode (0..4)
-    elif query.reg == 0x01C8:
-        return 4 # Equalize
-    # Aux Relay Mode / Aux Relay State
-    elif query.reg == 0x01C9:
-        # bit 7: relay state
-        # bit 6..0: relay mode
-        #   0: Float
-        #   1: Diversion: Relay
-        #   2: Diversion: Solid St
-        #   3: Low batt disconnect
-        #   4: Remote
-        #   5: Vent fan
-        #   6: PV Trigger
-        #   7: Error output
-        #   8: Night light
-        return 0x86  # Relay on, PV Trigger
+    def packet_received(self, packet):
+        # Let the superclass handle packets first
+        handled = super(MXEmulator, self).packet_received(packet)
 
-    ##### STATUS/CC/STAT #####
-    # Maximum battery (1/10)
-    elif query.reg == 0x000F:
-        return 111
-    # VOC (1/10)
-    elif query.reg == 0x0010:
-        return 122
-    # Max VOC (1/10)
-    elif query.reg == 0x0012:
-        return 133
-    # Total kWH DC (1)
-    elif query.reg == 0x0013:
-        return 144
-    # Total kAH (1/10)
-    elif query.reg == 0x0014:
-        return 155
-    # Max wattage (1)
-    elif query.reg == 0x0015:
-        return 166
+        # Unknown packet, try handle it ourselves:
+        if not handled:
+            _, ptype, _ = packet
+            if ptype == MateNET.TYPE_STATUS:
+                self.packet_status(packet)
+                return True
+            elif ptype == MateNET.TYPE_LOG:
+                self.packet_log(packet)
+                return True
+            else:
+                print "Received:", packet
+                return False
 
-    ##### STATUS/CC/SETPT #####
-    # Absorb (1/10)
-    elif query.reg == 0x0170:
-        return 177
-    # Float (1/10)
-    elif query.reg == 0x0172:
-        return 188
+    def packet_status(self, packet):
+        """
+        The MATE wants a status packet, send it a dummy status packet
+        to see the effect of various values
+        """
+        print "Received status packet, sending dummy data"
 
-    else:
-        print "Unknown query! (0x%.4x)" % query.reg
+        self.send_packet(
+            '\x81'  # Ah (upper)
+            +'\x80' # In current
+            +'\x82' # Out current
+            +'\x00' # kWH (signed, upper)
+            +'\x00' # Ah (lower)
+            +'\x3F'
+            +'\x02\x01' # Status/Error
+            +'\xF0' # kWH (signed, lower)
+            +'\x03\xE7' # Bat voltage
+            +'\x27\x0F' # PV voltage
+        )
 
-    return 0
+    def packet_log(self, packet):
+        """
+        The MATE wants to see a log entry
+        TODO: I don't know what format the MATE expects - need to capture some field data
+        """
+        _, _, payload = packet
+        query = QueryPacket.from_buffer(payload)
+        print "Note: Log emulation not yet implemented"
 
-def packet_query(tester, packet):
-    _, _, payload = packet
-    query = QueryPacket.from_buffer(payload)
-    print "Query:", query
+    def process_query(self, port, query):
+        """
+        The MATE wants to get the value of a register
+        """
+        # Get device type
+        if query.reg == 0x0000:
+            print "SCAN received, pretending to be an MX/CC"
+            return self.DEVICE
 
-    result = process_query(query)
-    tester.send_packet(pack('>H', result))
+        ##### STATUS/CC/METER #####
+        # Charger Watts (1)
+        elif query.reg == 0x016A:
+            return 44
+        # Charger kWh (1/10)
+        elif query.reg == 0x01EA:
+            return 55
+        # Charger amps DC (-128..127, 0=128)
+        elif query.reg == 0x01c7:
+            return 128  # 0
+        # Battery voltage (1/10)
+        elif query.reg == 0x0008:
+            return 77
+        # Panel voltage (1)
+        elif query.reg == 0x01C6:
+            return 88
 
-def packet_log(tester, packet):
-    _, _, payload = packet
-    query = QueryPacket.from_buffer(payload)
+        # Revision (2.3.4)
+        elif query.reg == 0x0002:
+            return 11
+        elif query.reg == 0x0003:
+            return 22
+        elif query.reg == 0x0004:
+            return 33
+
+        ##### STATUS/CC/MODE #####
+        # Mode (0..4)
+        elif query.reg == 0x01C8:
+            return 4 # Equalize
+        # Aux Relay Mode / Aux Relay State
+        elif query.reg == 0x01C9:
+            # bit 7: relay state
+            # bit 6..0: relay mode
+            #   0: Float
+            #   1: Diversion: Relay
+            #   2: Diversion: Solid St
+            #   3: Low batt disconnect
+            #   4: Remote
+            #   5: Vent fan
+            #   6: PV Trigger
+            #   7: Error output
+            #   8: Night light
+            return 0x86  # Relay on, PV Trigger
+
+        ##### STATUS/CC/STAT #####
+        # Maximum battery (1/10)
+        elif query.reg == 0x000F:
+            return 111
+        # VOC (1/10)
+        elif query.reg == 0x0010:
+            return 122
+        # Max VOC (1/10)
+        elif query.reg == 0x0012:
+            return 133
+        # Total kWH DC (1)
+        elif query.reg == 0x0013:
+            return 144
+        # Total kAH (1/10)
+        elif query.reg == 0x0014:
+            return 155
+        # Max wattage (1)
+        elif query.reg == 0x0015:
+            return 166
+
+        ##### STATUS/CC/SETPT #####
+        # Absorb (1/10)
+        elif query.reg == 0x0170:
+            return 177
+        # Float (1/10)
+        elif query.reg == 0x0172:
+            return 188
+
+        else:
+            super(MXEmulator, self).process_query(query)
 
 
-def packet_status(tester, packet):
-    # Send a dummy status packet, to see the effect of various values
-    print "Received status packet, sending dummy data"
+class HubEmulator(MateTester):
+    """
+    Emulate a Hub, to see how it works
+    """
+    def __init__(self, comport):
+        super(HubEmulator, self).__init__(comport)
+        # Devices attached to this virtual hub:
+        self.ports = {
+            1: MXEmulator(self.ser),
+            2: MXEmulator(self.ser),
+        }
 
-    tester.send_packet(
-        '\x81'  # Ah (upper)
-        +'\x80' # In current
-        +'\x82' # Out current
-        +'\x00' # kWH (signed, upper)
-        +'\x00' # Ah (lower)
-        +'\x3F'
-        +'\x02\x01' # Status/Error
-        +'\xF0' # kWH (signed, lower)
-        +'\x03\xE7' # Bat voltage
-        +'\x27\x0F' # PV voltage
-    )
+    def get_device_at_port(self, port):
+        device = self.ports.get(port)
+        if device and isinstance(device, MateTester):
+            return device
+        return None
+
+    def packet_received(self, packet):
+        port, ptype, _ = packet
+        if ptype == MateNET.TYPE_QUERY or port == 0:
+            # Let the superclass handle packets first
+            handled = super(HubEmulator, self).packet_received(packet)
+
+            # Unknown packet, try handle it ourselves:
+            if not handled:
+                print "Received:", packet
+        else:
+            # Redirect to the correct device class
+            device = self.get_device_at_port(port)
+            if device:
+                #print "Forwarding packet to", device
+                # TODO: Unsure if port needs to be set to 0
+                return device.packet_received(packet)
+            else:
+                print "Warning: No device attached to port", port
+                return False
+
+    def process_query(self, port, query):
+        # SCAN: What device is attached to the specified port?
+        if query.reg == 0x0000:
+            # Pretend to be a hub attached to port 0
+            if port == 0:
+                print "SCAN received, pretending to be a hub"
+                return MateNET.DEVICE_HUB
+            # Dynamically look up what's attached to the other ports
+            else:
+                print "SCAN hub port %d" % port
+                device = self.get_device_at_port(port)
+                if device:
+                    print device, "attached to port", port
+                    return device.DEVICE
+                return 0  # No device attached to this port
+        else:
+            if port != 0:  # Need to forward queries for other ports to their respective devices
+                device = self.get_device_at_port(port)
+                if device:
+                    # TODO: Unsure if port needs to be set to 0
+                    device.process_query(query)
+
+
 
 if __name__ == "__main__":
-    tester = MateTester('COM8')
+    unit = HubEmulator('COM8')
 
-    print "Reading packets:"
-    while True:
-        try:
-            packet = tester.recv_packet(timeout=5.0)
-            if packet:
-                _, ptype, _ = packet
-                if ptype == MateNET.TYPE_QUERY:
-                    packet_query(tester, packet)
-                elif ptype == MateNET.TYPE_STATUS:
-                    packet_status(tester, packet)
-                elif ptype == MateNET.TYPE_LOG:
-                    packet_log(tester, packet)
-                else:
-                    print "Received:", packet
-        except Exception as e:
-            print e
-            continue
+    print "Running"
+    unit.run()
 
-# First boot
-#Received: (0, 2, [0, 0, 0, 0])
-
-# STATUS/CC/METER : Charger watts
-#Received: (0, 2, [1, 106, 0, 0])
-
-# : Charger kWhrs
-# Received: (0, 2, [1, 234, 0, 0])
-
-# STATUS/CC/METER : Charger Amps DC
-#Received: (0, 2, [1, 199, 0, 0])
-
-# STATUS/CC/METER : Battery voltage
-#Received: (0, 2, [0, 8, 0, 0])
-
-# STATUS/CC/METER : Panel voltage
-#Received: (0, 2, [1, 198, 0, 0])
-
-# STATUS/CC/METER : Revision
-#Received: (0, 2, [0, 0, 0, 0])
-#Received: (0, 2, [0, 2, 0, 0])
-#Received: (0, 2, [0, 3, 0, 0])
-#Received: (0, 2, [0, 4, 0, 0])
-
-# STATUS/CC/MODE
-#Received: (0, 2, [1, 200, 0, 0])
-
-# : Aux relay mode & : Aux relay state
-#Received: (0, 2, [1, 201, 0, 0])
 
 # STATUS/CC/LOG1
 # Contains AH/kWH/Vp/Ap/kWp, min/max battery voltage, absorb/float time
@@ -219,24 +305,6 @@ if __name__ == "__main__":
 #Received: (0, 22, [0, 0, 0, 4])
 #Received: (0, 22, [0, 0, 0, 4])
 #                            ^day
-
-# STATUS/CC/STAT : Maximum battery
-#Received: (0, 2, [0, 15, 0, 0])
-
-# : voc
-#Received: (0, 2, [0, 16, 0, 0])
-
-# : max voc
-#Received: (0, 2, [0, 18, 0, 0])
-
-# : maximum wattage
-#Received: (0, 2, [0, 21, 0, 0])
-
-# : total kWH DC
-#Received: (0, 2, [0, 19, 0, 0])
-
-# : total kAH
-#Received: (0, 2, [0, 20, 0, 0])
 
 # AC INPUT CONTROL
 # Drop: Received: (1, 3, [0, 58, 0, 0])
