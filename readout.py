@@ -1,12 +1,26 @@
-from mate import MateController
+from matenet import MateMX
+from time import sleep
 
-mate = MateController('COM19')
+print "MATE emulator (MX)"
 
-status = mate.read_status()
+# Create a new MATE emulator attached to the specified serial port:
+mate = MateMX('/dev/ttyUSB0')
 
-print "PV Voltage:", status.pv_voltage
-print "PV Current:", status.pv_current
-print "Charge Current:", status.charge_current
-print "Daily kWh:", status.daily_kwh
-print "Daily Ah:", status.daily_ah
-print "Battery Voltage:", status.bat_voltage
+# Check that an MX unit is attached and is responding
+mate.scan(0)
+
+# Query the device revision
+print "Revision:", mate.revision
+
+
+print "Getting log page... (day:-1)"
+logpage = mate.get_logpage(-1)
+print logpage
+
+while True:
+    print "Status:"
+    status = mate.get_status()
+    print status
+
+    sleep(1.0)
+
