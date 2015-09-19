@@ -121,6 +121,16 @@ class MateMX(Mate):
     """
     Communicate with an MX unit attached to the MateNET bus
     """
+    def scan(self, port):
+        """
+        Query the attached device to make sure we're communicating with an MX unit
+        TODO: Support Hubs
+        :param port: int, 0-10 (root:0)
+        """
+        devid = super(MateMX, self).scan(port)
+        if devid != Mate.DEVICE_MX:
+            raise RuntimeError("Attached device is not an MX unit!")
+
     def get_status(self):
         """
         Request a status packet from the controller
@@ -136,10 +146,10 @@ class MateMX(Mate):
     def get_logpage(self, day):
         """
         Get a log page for the specified day
-        :param day: The day, counting backwards from today (0:Today, 0..255)
+        :param day: The day, counting backwards from today (0:Today, -1..-255)
         :return: A MXLogPagePacket
         """
-        resp = self.send(Mate.TYPE_LOG, addr=0, param=day)
+        resp = self.send(Mate.TYPE_LOG, addr=0, param=-day)
         if resp:
             return MXLogPagePacket.from_buffer(resp[1:])
 
