@@ -23,7 +23,7 @@
 
 __author__ = 'Jared'
 
-from serial import Serial, PARITY_SPACE, PARITY_MARK
+from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
 from cstruct import struct
 
 
@@ -50,8 +50,31 @@ class MateNET(object):
         if isinstance(comport, Serial):
             self.ser = comport
         else:
-            self.ser = Serial(comport, 9600, parity=PARITY_SPACE)
+            self.ser = Serial(comport, 9600, parity=PARITY_ODD)
             self.ser.setTimeout(1.0)
+
+        self.supports_spacemark = (
+            (PARITY_SPACE in self.ser.PARITIES) and
+            (PARITY_MARK in self.ser.PARITIES)
+        )
+
+    def _odd_parity(self, b):
+        p = False
+        while b:
+            p = not p
+            b = b & (b - 1)
+        return p
+
+    def _write_9b(self, data, bit8):
+        if self.supports_spacemark:
+            self.ser.setParity(PARITY_MARK if bit8 else PARITY_SPACE)
+            self.ser.write(data)
+        else:
+            # Emulate SPACE/MARK parity using EVEN/ODD parity
+            for b in data:
+                p = self._odd_parity(ord(b)) ^ bit8
+                self.ser.setParity(PARITY_ODD if p else PARITY_EVEN)
+                self.ser.write(b)
 
     def _send(self, data):
         """
@@ -62,12 +85,10 @@ class MateNET(object):
         footer = chr((checksum >> 8) & 0xFF) + chr(checksum & 0xFF)
 
         # First byte has bit8 set (address byte)
-        self.ser.setParity(PARITY_MARK)
-        self.ser.write(data[0])
+        self._write_9b(data[0], 1)
 
         # Rest of the bytes have bit8 cleared (data byte)
-        self.ser.setParity(PARITY_SPACE)
-        self.ser.write(data[1:] + footer)
+        self._write_9b(data[1:] + footer, 0)
 
     @staticmethod
     def _calc_checksum(data):

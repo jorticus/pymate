@@ -385,6 +385,55 @@ class FXEmulator(MateTester):
             return super(FXEmulator, self).process_query(port, query)
 
 
+class FlexNETDCEmulator(MateTester):
+    """
+    Emulates a FlexNET DC monitor, outputting dummy data
+    so we can see how the MATE unit responds
+    """
+    DEVICE = MateNET.DEVICE_FX
+
+    def packet_received(self, packet):
+        # Let the superclass handle packets first
+        handled = super(FlexNETDCEmulator, self).packet_received(packet)
+
+        # Unknown packet, try handle it ourselves:
+        if not handled:
+            _, ptype, _ = packet
+            if ptype == MateNET.TYPE_STATUS:
+                self.packet_status(packet)
+                return True
+            else:
+                print "Received:", packet
+                return False
+
+    def packet_status(self, packet):
+        """
+        The MATE wants a status packet, send it a dummy status packet
+        to see the effect of various values
+        """
+        print "Received status packet, sending dummy data. payload:", packet
+
+        self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+
+    def process_query(self, port, query):
+        """
+        The MATE wants to get the value of a register
+        """
+        # Get device type
+        if query.reg == 0x0000:
+            print "SCAN received, pretending to be a FlexNET DC"
+            return 4 #self.DEVICE
+
+        # Revision (2.3.4)
+        elif query.reg == 0x0002:
+            return 11
+        elif query.reg == 0x0003:
+            return 22
+        elif query.reg == 0x0004:
+            return 33
+        return 0
+
+
 class HubEmulator(MateTester):
     """
     Emulate a Hub, to see how it works
@@ -452,6 +501,7 @@ if __name__ == "__main__":
     #unit = HubEmulator(comport)
     unit = MXEmulator(comport)
     #unit = FXEmulator(comport)
+    #unit = FlexNETDCEmulator(comport)
 
     print "Running"
     unit.run()
