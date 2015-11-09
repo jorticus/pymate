@@ -164,8 +164,8 @@ class MateNET(object):
         if len(data) < 2:
             raise RuntimeError("Error receiving packet - not enough data received")
 
-        if data[0] != 0x03:  # Pretty sure this is always 0x03
-            raise RuntimeError("Error receiving packet - invalid header")
+        #if data[0] != chr(0x03):  # Pretty sure this is always 0x03
+        #    raise RuntimeError("Error receiving packet - invalid header")
         return data[1:]
 
 
@@ -182,7 +182,7 @@ class Mate(MateNET):
         :param port: int, 0-10 (root:0)
         :return: int, the type of device that is attached (see MateNET.DEVICE_*)
         """
-        result = self.query(0x00, port)
+        result = self.query(0x00, port=port)
         return result
 
     def query(self, reg, param=0, port=0):
@@ -193,8 +193,7 @@ class Mate(MateNET):
         :param port: Port (0-10)
         :return: The value (16-bit uint)
         """
-        packet = MateNET.QueryPacket(reg, param)
-        resp = self.send(port, MateNET.TYPE_QUERY, packet.to_buffer())
+        resp = self.send(MateNET.TYPE_QUERY, addr=reg, param=param, port=port)
         if resp:
             response = MateNET.QueryResponse.from_buffer(resp)
             return response.value
@@ -207,8 +206,7 @@ class Mate(MateNET):
         :param port: Port (0-10)
         :return: ???
         """
-        packet = MateNET.QueryPacket(reg, value)
-        resp = self.send(port, MateNET.TYPE_CONTROL, packet.to_buffer())
+        resp = self.send(MateNET.TYPE_CONTROL, addr=reg, param=value, port=port)
         if resp:
             return None  # TODO: What kind of response do we get from a control packet?
 

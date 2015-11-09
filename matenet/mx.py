@@ -139,9 +139,10 @@ class MateMX(Mate):
         resp = self.send(Mate.TYPE_STATUS, addr=1, param=0x00)
         # TODO: Unsure what addr/param are supposed to be
         # param is 00 with no hub attached, or FF with a hub attached?
+        # Status packet is returned for any value of addr/param, so probably not important.
 
         if resp:
-            return MXStatusPacket.from_buffer(resp[1:])
+            return MXStatusPacket.from_buffer(resp)
 
     def get_logpage(self, day):
         """
@@ -151,7 +152,7 @@ class MateMX(Mate):
         """
         resp = self.send(Mate.TYPE_LOG, addr=0, param=-day)
         if resp:
-            return MXLogPagePacket.from_buffer(resp[1:])
+            return MXLogPagePacket.from_buffer(resp)
 
     @property
     def charger_watts(self):
