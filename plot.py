@@ -1,4 +1,5 @@
-from mate import MateController
+#from matecom import MateCom  # For use with MATE RS232 interface
+from matenet import MateMX  # For use with proprietry MateNET protocol
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -52,7 +53,8 @@ class DynamicAxes:
 
 
 if __name__ == "__main__":
-    mate = MateController('COM19')
+    #mate = MateCom('COM2')  # RS232
+    mate = MateMX('COM2')  # MateNET
 
     # Set up plot
     fig = plt.figure()
@@ -67,9 +69,10 @@ if __name__ == "__main__":
     # Set up acquisition thread
     def acquire():
         while True:
-            status = mate.read_status()
+            #status = mate.read_status()  # RS232
+            status = mate.get_status()  # MateNET
             print "BV:%s, PV:%s" % (status.bat_voltage, status.pv_voltage)
-            data.update([status.bat_voltage, status.pv_voltage])
+            data.update([float(status.bat_voltage), float(status.pv_voltage)])
     thread = Thread(target=acquire)
     thread.start()
 

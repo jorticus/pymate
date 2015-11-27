@@ -5,6 +5,8 @@
 # which provides diagnostic information of current charge state and power use
 #
 # Currently only supports the MX status page (from an Outback MX charge controller)
+#
+# NOTE: This is intended for communication with the MATE's RS232 port, not Outback's proprietary protocol.
 
 import serial
 from value import Value
