@@ -29,12 +29,12 @@ class MXStatusPacket(object):
         self.bat_voltage = None
         self.status = None
         self.errors = None
+        self.raw = None
 
     @classmethod
     def from_buffer(cls, data):
         values = cls.fmt.unpack(data)
         status = MXStatusPacket()
-        # Gaahh their protocol is messed up
         # The following was determined by poking values at the MATE unit...
         raw_ah = ((values[0] & 0x70) >> 4) | values[4]
         status.amp_hours = Value(raw_ah, units='Ah', resolution=0)
@@ -42,11 +42,15 @@ class MXStatusPacket(object):
         status.bat_current = Value((128 + values[2]) % 256, units='A', resolution=0)
         raw_kwh = (values[3] << 8) | values[8]  # whyyyy
         status.kilowatt_hours = Value(raw_kwh / 10.0, units='kWh', resolution=1)
-        # TODO: values[5] - Kilowatts peak??
+        # TODO: what does values[5] represent?
         status.status = values[6]
         status.errors = values[7]
         status.bat_voltage = Value(values[9] / 10.0, units='V', resolution=1)
         status.pv_voltage = Value(values[10] / 10.0, units='V', resolution=1)
+
+        # Also add the raw packet, in case any of the above changes
+        status.raw = data
+
         return status
 
     def __repr__(self):
@@ -75,6 +79,7 @@ class MXLogPagePacket(object):
         self.bat_max = None
         self.absorb_time = None
         self.float_time = None
+        self.raw = None
 
     @classmethod
     def from_buffer(cls, data):
@@ -82,7 +87,6 @@ class MXLogPagePacket(object):
         page = MXLogPagePacket()
 
         # Parse the mess of binary values
-        page.amps_peak = values[0] | ((values[1] & 0x03) << 8)
         page.bat_max = ((values[1] & 0xFC) >> 2) | ((values[2] & 0x0F) << 6)
         page.bat_min = ((values[9] & 0xC0) >> 6) | (values[10] << 2) | ((values[11] & 0x03) << 10)
         page.kilowatt_hours = ((values[2] & 0xF0) >> 4) | (values[3] << 4)
@@ -104,6 +108,10 @@ class MXLogPagePacket(object):
         page.kilowatt_hours = Value(page.kilowatt_hours / 10.0, units='kWh', resolution=1)
         page.absorb_time = Value(page.absorb_time, units='min')
         page.float_time = Value(page.float_time, units='min')
+
+        # Also add the raw packet
+        page.raw = data
+
         return page
 
     def __str__(self):
