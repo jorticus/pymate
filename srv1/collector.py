@@ -86,25 +86,33 @@ def collect_logpage():
 		log.exception("EXCEPTION in collect_logpage()")
 		return None
 	
+last_status_b64 = None
 def collect_status():
 	"""
 	Collect the current status.
 	If this fails, log and continue
 	"""
+	global last_status_b64
 	try:
 		status = mate.get_status()
-
-		ts, tz = timestamp()
-		return {
-			'type': 'mx-status',
-			'data': b64encode(status.raw),  # Just send the raw data, and decode it server-side
-			'ts': ts,
-			'tz': tz,
-			'extra': {
-				# To supplement the status packet data
-				'chg_w': float(mate.charger_watts)
+		status_b64 = b64encode(status.raw)
+		
+		# Only upload if the status has actually changed (to save bandwidth)
+		if last_status_b64 != status_b64:
+			last_status_b64 = status_b64
+			ts, tz = timestamp()
+			return {
+				'type': 'mx-status',
+				'data': status_b64,  # Just send the raw data, and decode it server-side
+				'ts': ts,
+				'tz': tz,
+				'extra': {
+					# To supplement the status packet data
+					'chg_w': float(mate.charger_watts)
+				}
 			}
-		}
+		else:
+			log.debug('Status unchanged')
 	except:
 		log.exception("EXCEPTION in collect_status()")
 		return None
