@@ -162,7 +162,7 @@ class MateFX(Mate):
         return self.query(0x005A)
     @aux_control.setter
     def aux_control(self, value):
-        self.control(0x003C, value)
+        self.control(0x005A, value)
 
     @property
     def eq_control(self):
@@ -170,7 +170,7 @@ class MateFX(Mate):
         return self.query(0x0038)
     @eq_control.setter
     def eq_control(self, value):
-        self.control(0x003C, value)
+        self.control(0x0038, value)
 
     @property
     def disconn_status(self):
