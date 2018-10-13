@@ -26,6 +26,7 @@ __author__ = 'Jared'
 from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
 from cstruct import struct
 from time import sleep
+from util import to_byte, to_bytestr, bin2hexstr
 
 # Delay between bytes when space/mark is not supported
 # This is needed to ensure changing the parity between even/odd only affects one byte at a time
@@ -37,6 +38,9 @@ END_OF_PACKET_TIMEOUT = 0.02 # seconds
 
 # Retry command this many times if we read back an invalid packet (eg. bad CRC)
 RETRY_PACKET = 2
+
+# If true, print raw TX/RX dumps
+DEBUG_PRINT_RXTX = True
 
 class MateNET(object):
     """
@@ -86,18 +90,22 @@ class MateNET(object):
         return p
 
     def _write_9b(self, data, bit8):
+        assert(data is not None and len(data) > 0)
+        assert(isinstance(data, bytes))
+
+        if DEBUG_PRINT_RXTX:
+            print("TX: %s (%d)" % (bin2hexstr(data), bit8))
+
         if self.supports_spacemark:
             self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
-            #sleep(0.5)
             self.ser.write(data)
             sleep(FUDGE_FACTOR)
-            #sleep(0.5)
         else:
             # Emulate SPACE/MARK parity using EVEN/ODD parity
             for b in data:
-                p = self._odd_parity(ord(b)) ^ bit8
+                p = self._odd_parity(to_byte(b)) ^ bit8
                 self.ser.parity = (PARITY_ODD if p else PARITY_EVEN)
-                self.ser.write(b)
+                self.ser.write(to_bytestr(b))
                 sleep(FUDGE_FACTOR)
 
     def _send(self, data):
@@ -105,11 +113,17 @@ class MateNET(object):
         Send a packet to the MateNET bus
         :param data: str containing the raw data to send (excluding checksum)
         """
+        assert(isinstance(data, bytes))
+        assert(len(data) > 2)
+
         checksum = self._calc_checksum(data)
-        footer = chr((checksum >> 8) & 0xFF) + chr(checksum & 0xFF)
+        footer = to_bytestr((
+            ((checksum >> 8) & 0xFF),
+            (checksum & 0xFF)
+        ))
 
         # First byte has bit8 set (address byte)
-        self._write_9b(data[0], 1)
+        self._write_9b(to_bytestr(data[0]), 1)
 
         # Rest of the bytes have bit8 cleared (data byte)
         self._write_9b(data[1:] + footer, 0)
@@ -121,7 +135,8 @@ class MateNET(object):
         The checksum is a simple 16-bit sum over all the bytes in the packet,
         including the 9-bit start-of-packet byte (though the 9th bit is not counted)
         """
-        return sum(ord(c) for c in data) % 0xFFFF
+        assert(isinstance(data, bytes))
+        return sum(to_byte(c) for c in data) % 0xFFFF
 
     @staticmethod
     def _parse_packet(data):
@@ -135,13 +150,14 @@ class MateNET(object):
             raise RuntimeError("Error receiving mate packet - No data received")
         if len(data) < 3:
             raise RuntimeError("Error receiving mate packet - Received packet too small (%d bytes)" % (len(data)))
+        assert(isinstance(data, bytes))
 
         # Checksum
         packet = data[0:-2]
-        expected_chksum = (ord(data[-2]) << 8) | ord(data[-1])
+        expected_chksum = int((to_byte(data[-2]) << 8) | to_byte(data[-1]))
         actual_chksum = MateNET._calc_checksum(packet)
         if actual_chksum != expected_chksum:
-            raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:%d, Actual:%d)"
+            raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:0x%.4x, Actual:0x%.4x)"
                                % (expected_chksum, actual_chksum))
         return packet
 
@@ -164,6 +180,9 @@ class MateNET(object):
         while b:
             b = self.ser.read()
             rawdata += b
+
+        if DEBUG_PRINT_RXTX:
+            print("RX: %s" % bin2hexstr(rawdata))
 
         return MateNET._parse_packet(rawdata)
 
