@@ -32,8 +32,11 @@ from time import sleep
 # (Essentially forces 1 byte in the TX buffer at a time)
 FUDGE_FACTOR = 0.002 # seconds
 
+# Amount of time with no communication that signifies the end of the packet
+END_OF_PACKET_TIMEOUT = 0.02 # seconds
+
 # Retry command this many times if we read back an invalid packet (eg. bad CRC)
-RETRY_PACKET = 3 
+RETRY_PACKET = 1
 
 class MateNET(object):
     """
@@ -85,8 +88,10 @@ class MateNET(object):
     def _write_9b(self, data, bit8):
         if self.supports_spacemark:
             self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
+            #sleep(0.5)
             self.ser.write(data)
             sleep(FUDGE_FACTOR)
+            #sleep(0.5)
         else:
             # Emulate SPACE/MARK parity using EVEN/ODD parity
             for b in data:
@@ -129,7 +134,7 @@ class MateNET(object):
         if not data or len(data) == 0:
             raise RuntimeError("Error receiving mate packet - No data received")
         if len(data) < 3:
-            raise RuntimeError("Error receiving mate packet - Received packet too small")
+            raise RuntimeError("Error receiving mate packet - Received packet too small (%d bytes)" % (len(data)))
 
         # Checksum
         packet = data[0:-2]
@@ -153,8 +158,8 @@ class MateNET(object):
         if not rawdata:
             return None
 
-        # Get rest of packet (timeout set to 10ms to detect end of packet)
-        self.ser.timeout = 0.01
+        # Get rest of packet (timeout set to ~10ms to detect end of packet)
+        self.ser.timeout = END_OF_PACKET_TIMEOUT
         b = 1
         while b:
             b = self.ser.read()
