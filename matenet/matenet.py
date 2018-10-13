@@ -25,7 +25,12 @@ __author__ = 'Jared'
 
 from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
 from cstruct import struct
+from time import sleep
 
+# Delay between bytes when space/mark is not supported
+# This is needed to ensure changing the parity between even/odd only affects one byte at a time
+# (Essentially forces 1 byte in the TX buffer at a time)
+FUDGE_FACTOR = 0.002 # seconds
 
 class MateNET(object):
     """
@@ -46,17 +51,26 @@ class MateNET(object):
     TYPE_STATUS = 4
     TYPE_LOG = 22
 
-    def __init__(self, comport):
+    def __init__(self, comport, supports_spacemark=None):
+        """
+        :param comport: The hardware serial port to use (eg. /dev/ttyUSB0 or COM1)
+        :param supports_spacemark: 
+            True-Port supports Space/Mark parity. 
+            False-Port does not support Space/Mark parity. 
+            None-Try detect whether the port supports Space/Mark parity.
+        """
         if isinstance(comport, Serial):
             self.ser = comport
         else:
             self.ser = Serial(comport, 9600, parity=PARITY_ODD)
             self.ser.timeout = 1.0
 
-        self.supports_spacemark = (
-            (PARITY_SPACE in self.ser.PARITIES) and
-            (PARITY_MARK in self.ser.PARITIES)
-        )
+        self.supports_spacemark = supports_spacemark
+        if self.supports_spacemark is None:
+            self.supports_spacemark = (
+                (PARITY_SPACE in self.ser.PARITIES) and
+                (PARITY_MARK in self.ser.PARITIES)
+            )
 
     def _odd_parity(self, b):
         p = False
@@ -75,6 +89,7 @@ class MateNET(object):
                 p = self._odd_parity(ord(b)) ^ bit8
                 self.ser.parity = (PARITY_ODD if p else PARITY_EVEN)
                 self.ser.write(b)
+                sleep(FUDGE_FACTOR)
 
     def _send(self, data):
         """
@@ -173,8 +188,8 @@ class Mate(MateNET):
     """
     Emulates the MATE controller, allows communication with any attached devices
     """
-    def __init__(self, comport):
-        super(Mate, self).__init__(comport)
+    def __init__(self, comport, supports_spacemark=None):
+        super(Mate, self).__init__(comport, supports_spacemark)
 
     def scan(self, port):
         """

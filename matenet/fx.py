@@ -107,8 +107,8 @@ class MateFX(Mate):
     WARN_COMM_ERROR = 0x40
     WARN_FAN_FAILURE = 0x80
 
-    def __init__(self, comport):
-        super(MateFX, self).__init__(comport)
+    def __init__(self, comport, supports_spacemark=None):
+        super(MateFX, self).__init__(comport, supports_spacemark)
         self.is_230v = False
 
     def get_status(self):
