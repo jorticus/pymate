@@ -136,8 +136,10 @@ class MateMX(Mate):
         :param port: int, 0-10 (root:0)
         """
         devid = super(MateMX, self).scan(port)
+        if devid == None:
+            raise RuntimeError("No response from the MX unit")
         if devid != Mate.DEVICE_MX:
-            raise RuntimeError("Attached device is not an MX unit!")
+            raise RuntimeError("Attached device is not an MX unit! (DeviceID: %s)" % devid)
 
     def get_status(self):
         """
