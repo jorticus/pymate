@@ -36,7 +36,7 @@ FUDGE_FACTOR = 0.002 # seconds
 END_OF_PACKET_TIMEOUT = 0.02 # seconds
 
 # Retry command this many times if we read back an invalid packet (eg. bad CRC)
-RETRY_PACKET = 1
+RETRY_PACKET = 2
 
 class MateNET(object):
     """
@@ -184,13 +184,17 @@ class MateNET(object):
 
                 data = self._recv()
                 if not data:
-                    return None
+                    continue  # No response - try again
+                    #return None
                     
                 break # Received successfully
             except:
                 if i < RETRY_PACKET:
                     continue  # Transmission error - try again
                 raise         # Retry limit reached
+
+        if not data:
+            return None
 
         # Validation
         if len(data) < 2:
