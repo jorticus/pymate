@@ -201,8 +201,9 @@ class MateNET(object):
         if len(data) < 2:
             raise RuntimeError("Error receiving packet - not enough data received")
 
-        #if data[0] != chr(0x03):  # Pretty sure this is always 0x03
-        #    raise RuntimeError("Error receiving packet - invalid header")
+        if ord(data[0]) & 0x80 == 0x80:
+            raise RuntimeError("Invalid command 0x%.2x" % (ord(data[0]) & 0x7F))
+            
         return data[1:]
 
 
