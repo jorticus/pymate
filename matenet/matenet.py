@@ -51,7 +51,7 @@ class MateNET(object):
             self.ser = comport
         else:
             self.ser = Serial(comport, 9600, parity=PARITY_ODD)
-            self.ser.setTimeout(1.0)
+            self.ser.timeout = 1.0
 
         self.supports_spacemark = (
             (PARITY_SPACE in self.ser.PARITIES) and
@@ -67,13 +67,13 @@ class MateNET(object):
 
     def _write_9b(self, data, bit8):
         if self.supports_spacemark:
-            self.ser.setParity(PARITY_MARK if bit8 else PARITY_SPACE)
+            self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
             self.ser.write(data)
         else:
             # Emulate SPACE/MARK parity using EVEN/ODD parity
             for b in data:
                 p = self._odd_parity(ord(b)) ^ bit8
-                self.ser.setParity(PARITY_ODD if p else PARITY_EVEN)
+                self.ser.parity = (PARITY_ODD if p else PARITY_EVEN)
                 self.ser.write(b)
 
     def _send(self, data):
@@ -129,13 +129,13 @@ class MateNET(object):
         """
         # Wait for packet
         # TODO: Check parity?
-        self.ser.setTimeout(timeout)
+        self.ser.timeout = timeout
         rawdata = self.ser.read(1)
         if not rawdata:
             return None
 
         # Get rest of packet (timeout set to 10ms to detect end of packet)
-        self.ser.setTimeout(0.01)
+        self.ser.timeout = 0.01
         b = 1
         while b:
             b = self.ser.read()
