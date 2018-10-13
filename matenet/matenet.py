@@ -51,6 +51,7 @@ class MateNET(object):
     DEVICE_HUB = 1
     DEVICE_FX = 2
     DEVICE_MX = 3
+    DEVICE_FLEXNETDC = 4
 
     TYPE_QUERY = 2
     TYPE_CONTROL = 3
