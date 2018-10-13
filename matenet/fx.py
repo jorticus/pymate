@@ -111,6 +111,18 @@ class MateFX(Mate):
         super(MateFX, self).__init__(comport, supports_spacemark)
         self.is_230v = False
 
+    def scan(self, port=0):
+        """
+        Query the attached device to make sure we're communicating with an FX unit
+        TODO: Support Hubs
+        :param port: int, 0-10 (root:0)
+        """
+        devid = super(MateFX, self).scan(port)
+        if devid == None:
+            raise RuntimeError("No response from the FX unit")
+        if devid != Mate.DEVICE_FX:
+            raise RuntimeError("Attached device is not an FX unit! (DeviceID: %s)" % devid)
+
     def get_status(self):
         """
         Request a status packet from the inverter

@@ -129,7 +129,7 @@ class MateMX(Mate):
     """
     Communicate with an MX unit attached to the MateNET bus
     """
-    def scan(self, port):
+    def scan(self, port=0):
         """
         Query the attached device to make sure we're communicating with an MX unit
         TODO: Support Hubs
