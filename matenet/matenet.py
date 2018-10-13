@@ -32,6 +32,9 @@ from time import sleep
 # (Essentially forces 1 byte in the TX buffer at a time)
 FUDGE_FACTOR = 0.002 # seconds
 
+# Retry command this many times if we read back an invalid packet (eg. bad CRC)
+RETRY_PACKET = 3 
+
 class MateNET(object):
     """
     Interface for the MATE RJ45 bus ("MateNET")
@@ -168,12 +171,20 @@ class MateNET(object):
         """
 
         packet = MateNET.TxPacket(port, ptype, addr, param)
-        self._send(packet.to_buffer())
+        data = None
+        for i in range(RETRY_PACKET+1):
+            try:
+                self._send(packet.to_buffer())
 
-        # Read the response
-        data = self._recv()
-        if not data:
-            return None
+                data = self._recv()
+                if not data:
+                    return None
+                    
+                break # Received successfully
+            except:
+                if i < RETRY_PACKET:
+                    continue  # Transmission error - try again
+                raise         # Retry limit reached
 
         # Validation
         if len(data) < 2:
