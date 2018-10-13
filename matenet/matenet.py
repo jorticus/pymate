@@ -86,6 +86,7 @@ class MateNET(object):
         if self.supports_spacemark:
             self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
             self.ser.write(data)
+            sleep(FUDGE_FACTOR)
         else:
             # Emulate SPACE/MARK parity using EVEN/ODD parity
             for b in data:
