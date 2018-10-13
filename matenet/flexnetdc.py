@@ -81,10 +81,12 @@ class MateFlexNetDC(Mate):
         Request a status packet from the FLEXnet DC
         :return: A DCStatusPacket
         """
-        resp = self.send(Mate.TYPE_STATUS, addr=1)
-        if resp:
-            print 'RAW:', (' '.join("{:02x}".format(ord(c)) for c in resp[1:]))
-            return DCStatusPacket.from_buffer(resp[1:])
+        resp1 = self.send(Mate.TYPE_STATUS, addr=1)
+        resp2 = self.send(Mate.TYPE_STATUS, addr=2) # TODO: This also returns data!
+        if resp1 and resp2:
+            print 'RAW[1]:', (' '.join("{:02x}".format(ord(c)) for c in resp1[1:]))
+            print 'RAW[2]:', (' '.join("{:02x}".format(ord(c)) for c in resp2[1:]))
+            return DCStatusPacket.from_buffer(resp1[1:])
 
     def get_logpage(self, day):
         """
