@@ -75,7 +75,7 @@ def get_current_status():
         status = session.query(MxStatus).order_by(sql.desc(MxStatus.timestamp)).first()
 
         if status:
-            print "Status:", status
+            print("Status:", status)
             return jsonify(status)
         else:
             return jsonify({})

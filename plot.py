@@ -1,3 +1,4 @@
+import sys
 #from matecom import MateCom  # For use with MATE RS232 interface
 from matenet import MateMX  # For use with proprietry MateNET protocol
 import numpy as np
@@ -6,6 +7,10 @@ import matplotlib.animation as animation
 import time
 from threading import Thread, Lock
 from collections import deque
+
+if len(sys.argv) <= 1:
+    raise Exception("COM Port not specified.\nUsage:\n    %s /dev/ttyUSB0   (Linux)\n    %s COM1           (Windows)" % (sys.argv[0], sys.argv[0]))
+comport = sys.argv[1]
 
 N = 1000 # History length, in samples
 
@@ -53,8 +58,8 @@ class DynamicAxes:
 
 
 if __name__ == "__main__":
-    #mate = MateCom('COM2')  # RS232
-    mate = MateMX('COM2')  # MateNET
+    #mate = MateCom(comport)  # RS232
+    mate = MateMX(comport)  # MateNET
 
     # Set up plot
     fig = plt.figure()
@@ -71,7 +76,7 @@ if __name__ == "__main__":
         while True:
             #status = mate.read_status()  # RS232
             status = mate.get_status()  # MateNET
-            print "BV:%s, PV:%s" % (status.bat_voltage, status.pv_voltage)
+            print("BV:%s, PV:%s" % (status.bat_voltage, status.pv_voltage))
             data.update([float(status.bat_voltage), float(status.pv_voltage)])
     thread = Thread(target=acquire)
     thread.start()

@@ -1,6 +1,7 @@
 __author__ = 'Jared'
 
 from struct import calcsize, unpack_from, Struct
+from util import to_byte, to_bytestr
 
 
 def struct(fmt, fields):
@@ -11,7 +12,7 @@ def struct(fmt, fields):
     fields: a tuple of names to match to each member in the struct (tuple of str)
     """
     fmt = Struct(fmt)
-    test = fmt.unpack_from(''.join('\0' for i in range(fmt.size)))
+    test = fmt.unpack_from(b''.join(b'\0' for i in range(fmt.size)))
     nfields = len(test)
 
     if len(fields) != nfields:
@@ -44,7 +45,7 @@ def struct(fmt, fields):
                 setattr(self, name, value)
 
             # Named args
-            for name, value in kwargs.iteritems():
+            for name, value in kwargs.items():
                 if not hasattr(self, name):
                     raise RuntimeError("Struct does not have a field named '%s'" % name)
                 setattr(self, name, value)
@@ -64,8 +65,8 @@ def struct(fmt, fields):
                 raise RuntimeError("Error parsing struct - invalid length (Got %d bytes, expected %d)" % (data_len, cls._size))
 
             # Convert to binary string if necessary
-            if not isinstance(data, (str, unicode)):
-                data = ''.join(chr(c) for c in data)
+            if not isinstance(data, (bytes)):
+                data = to_bytestr(data)
 
             # Construct new struct class
             values = cls._fmt.unpack(data)

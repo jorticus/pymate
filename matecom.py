@@ -8,6 +8,7 @@
 #
 # NOTE: This is intended for communication with the MATE's RS232 port, not Outback's proprietary protocol.
 
+import sys
 import serial
 from value import Value
 
@@ -58,6 +59,10 @@ class MateCom(object):
 
 if __name__ == "__main__":
     # Test
-    mate = MateCom('COM1')
+    if len(sys.argv) <= 1:
+        raise Exception("COM Port not specified.\nUsage:\n    %s /dev/ttyUSB0   (Linux)\n    %s COM1           (Windows)" % (sys.argv[0], sys.argv[0]))
+    comport = sys.argv[1]
+    
+    mate = MateCom(comport)
     status = mate.read_status()
-    print status.__dict__
+    print(status.__dict__)

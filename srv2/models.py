@@ -49,7 +49,7 @@ class MxStatus(Base):
         self.status = int(status.status)
         self.errors = int(status.errors)
 
-        print "Status:", status
+        print("Status:", status)
 
     def to_json(self):
         d = {key: getattr(self, key) for key in self.__dict__ if key[0] != '_'}
@@ -99,7 +99,7 @@ class MxLogPage(Base):
         self.absorb_time = float(logpage.absorb_time)  # Minutes
         self.float_time = float(logpage.float_time)  # Minutes
 
-        print "Log Page:", logpage
+        print("Log Page:", logpage)
 
     def to_json(self):
         d = {key: getattr(self, key) for key in self.__dict__ if key[0] != '_'}
@@ -109,7 +109,7 @@ class MxLogPage(Base):
 def initialize_db():
     import settings
 
-    print "Create DB Engine"
+    print("Create DB Engine")
     engine = sql.create_engine(URL(**settings.DATABASE))
     Base.metadata.create_all(engine)
 
