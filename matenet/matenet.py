@@ -219,6 +219,8 @@ class Mate(MateNET):
         :return: int, the type of device that is attached (see MateNET.DEVICE_*)
         """
         result = self.query(0x00, port=port)
+        if result is not None:
+            result = result & 0x00FF
         return result
 
     def query(self, reg, param=0, port=0):
