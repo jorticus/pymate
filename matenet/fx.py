@@ -13,7 +13,7 @@ from matenet import MateDevice, MateNET
 
 
 class FXStatusPacket(object):
-    fmt = Struct('>BBBBBBBBhBB')
+    fmt = Struct('>BBBBBBBBBhBB')
 
     STATUS_INV_OFF = 0
     STATUS_SEARCH = 1
@@ -31,45 +31,73 @@ class FXStatusPacket(object):
                  status=None, misc=None, error=None, bat_voltage=None):
         # TODO: Determine what these variables represent
         self.a = a
-        self.l = l  # Line voltage?
+        self.l = l  # Line voltage? Input AC voltage?
         self.i = i  # Inverter voltage?
         self.c = c  # Inverter current?
         self.b = b  # Line current?
-        self.z = z
+        self.z = z  # Zer voltage? Output AC voltage?
         self.status = status
         self.misc = misc
         self.error = error
         self.bat_voltage = bat_voltage
+
+        # Inverter Current (amps), AC current the FX is delivering to loads
+        # Charger current (amps), AC current the FX is taking from AC input and delivering to batteries
+        # Buy current (amps), AC current the FX is taking from the AC input and delivering to batteries AND pass-thru loads.
+        # AC input voltage (V, 0-255). Voltage seen at FX's AC input. May need x2 multiplier
+        # AC output voltage
+        # Sell current (amps). The Ac current the FX is delivering from batteries to the AC input.
 
         # Misc byte
         self.is_230v = misc & 0x01 == 0x01
         self.aux_on = misc & 0x80 == 0x80
 
         # TODO: When misc:0 == 1, you must multiply voltages by 2, and divide currents by 2
+        if self.is_230v:
+            # self.z *= 2.0
+            # self.l *= 2.0
+            # self.i *= 2.0
+            # self.c /= 2.0
+            # self.b /= 2.0
+            pass
 
         # Calculations
-        self.inv_power = Value((self.i * self.c) / 1000.0, units='kW', resolution=2)
-        self.buy_power = Value((self.l * self.b) / 1000.0, units='kW', resolution=2)
-        self.chg_power = Value((self.l * self.a) / 1000.0, units='kW', resolution=2)
+        self.chg_power = Value((self.a * self.l) / 1000.0, units='kW', resolution=2)
+        self.buy_power = Value((self.b * self.l) / 1000.0, units='kW', resolution=2)
+        self.inv_power = Value((self.c * self.i) / 1000.0, units='kW', resolution=2)
         self.zer_power = Value((self.z * self.i) / 1000.0, units='kW', resolution=2)
+
+        # chg_power: Power into batteries, from AC Input
+        # buy_power: Power into batteries + loads, from AC Input
+        # inv_power: Power to loads
+        # zer_power: ??
 
     @classmethod
     def from_buffer(cls, data):
         values = cls.fmt.unpack(data)
 
-        return FXStatusPacket(
+        # [0, 0, 0, 3, 115, 0, 4, 0, 2, (0, 244), 9, 0]
+        # [0, 0, 0, 3, 115, 0, 4, 0, 2, (0, 246), 9, 0]
+        # [0, 0, 0, 3, 114, 0, 4, 0, 2, (0, 242), 9, 0]
+        status = FXStatusPacket(
             a=values[0],
             l=values[1],
             status=values[2],
-            misc=values[3],
-            z=values[4],
-            #values[5] # TODO
-            i=values[6],
-            error=bool(values[7] != 0),
-            bat_voltage=Value(values[8] / 10.0, units='V', resolution=1),
-            c=values[9],
-            b=values[10]
+            misc=values[3], # 3
+            z=values[4],  # 115, Output Voltage?
+            #values[5] # Unknown?
+            i=values[6], # 4
+            error=bool(values[7] != 0), # 0
+            #values[8], # 2, Unknown?
+            bat_voltage=Value(values[9] / 10.0, units='V', resolution=1),
+            c=values[10], # 9
+            b=values[11] # 0
         )
+
+        # Also add the raw packet, in case any of the above changes
+        status.raw = data
+
+        return status
 
     def __repr__(self):
         return "<FXStatusPacket>"
@@ -109,13 +137,11 @@ class MateFXDevice(MateDevice):
 
     def __init__(self, *args, **kwargs):
         super(MateFXDevice, self).__init__(*args, **kwargs)
-        self.is_230v = False
+        self._is_230v = None
 
     def scan(self, *args):
         """
         Query the attached device to make sure we're communicating with an FX unit
-        TODO: Support Hubs
-        :param port: int, 0-10 (root:0)
         """
         devid = super(MateFXDevice, self).scan()
         if devid == None:
@@ -130,9 +156,26 @@ class MateFXDevice(MateDevice):
         """
         resp = self.send(MateNET.TYPE_STATUS, addr=1)
         if resp:
-            status = FXStatusPacket.from_buffer(resp[1:])
-            self.is_230v = status.is_230v
+            status = FXStatusPacket.from_buffer(resp)
+            self._is_230v = status.is_230v
             return status
+
+    @property
+    def is_230v(self):
+        if self._is_230v is not None:
+            return self._is_230v
+        else:
+            s = self.get_status()
+            if not s:
+                raise Exception('No response received when trying to read status')
+            return self._is_230v
+
+    @property
+    def revision(self):
+        # The FX doesn't return a revision;
+        # instead it returns a firmware version number
+        fw = self.query(0x0001)
+        return 'FW:%.3d' % (fw)
 
     @property
     def errors(self):
@@ -150,6 +193,7 @@ class MateFXDevice(MateDevice):
         return self.query(0x003D)
     @inverter_control.setter
     def inverter_control(self, value):
+        ## WARNING: THIS CAN TURN OFF THE INVERTER! ##
         self.control(0x003D, value)
 
     @property
@@ -178,7 +222,7 @@ class MateFXDevice(MateDevice):
 
     @property
     def eq_control(self):
-        """ Equalize mode (0:Off, ???) """
+        """ Equalize mode (0:Off, 1: Auto?, 2: On?) """
         return self.query(0x0038)
     @eq_control.setter
     def eq_control(self, value):
@@ -194,23 +238,24 @@ class MateFXDevice(MateDevice):
 
     @property
     def temp_battery(self):
-        """ Temperature of the battery (RAW, 0..255) """
-        return self.query(0x0032)
+        """ Temperature of the battery (DegC, 0..25.5?) """
+        # Not verified. I don't have a battery thermometer.
+        return Value(self.query(0x0032) / 10.0, units='C', resolution=1)
 
     @property
     def temp_air(self):
-        """ Temperature of the air (RAW, 0..255) """
-        return self.query(0x0033)
+        """ Temperature of the air (DegC, 0..25.5) """
+        return Value(self.query(0x0033) / 10.0, units='C', resolution=1)
 
     @property
     def temp_fets(self):
-        """ Temperature of the MOSFET switches (RAW, 0..255) """
-        return self.query(0x0034)
+        """ Temperature of the MOSFET switches (DegC, 0..255) """
+        return Value(self.query(0x0034) / 10.0, units='C', resolution=1)
 
     @property
     def temp_capacitor(self):
-        """ Temperature of the capacitor (RAW, 0..255) """
-        return self.query(0x0035)
+        """ Temperature of the capacitor (DegC, 0..25.5) """
+        return Value(self.query(0x0035) / 10.0, units='C', resolution=1)
 
     @property
     def output_voltage(self):
@@ -256,15 +301,15 @@ class MateFXDevice(MateDevice):
 
     @property
     def battery_actual(self):
-        return Value(self.query(0x0019), units='V', resolution=0)
+        return Value(self.query(0x0019) / 10.0, units='V', resolution=1)
 
     @property
     def battery_temp_compensated(self):
-        return Value(self.query(0x0016), units='V', resolution=0)
+        return Value(self.query(0x0016) / 10.0, units='V', resolution=1)
 
     @property
     def absorb_setpoint(self):
-        return Value(self.query(0x000B), units='V', resolution=0)
+        return Value(self.query(0x000B) / 10.0, units='V', resolution=1)
 
     @property
     def absorb_time_remaining(self):
@@ -272,7 +317,7 @@ class MateFXDevice(MateDevice):
 
     @property
     def float_setpoint(self):
-        return Value(self.query(0x000A), units='V', resolution=0)
+        return Value(self.query(0x000A) / 10.0, units='V', resolution=1)
 
     @property
     def float_time_remaining(self):
@@ -280,11 +325,11 @@ class MateFXDevice(MateDevice):
 
     @property
     def refloat_setpoint(self):
-        return Value(self.query(0x000D), units='V', resolution=0)
+        return Value(self.query(0x000D) / 10.0, units='V', resolution=1)
 
     @property
     def equalize_setpoint(self):
-        return Value(self.query(0x000C), units='V', resolution=0)
+        return Value(self.query(0x000C) / 10.0, units='V', resolution=1)
 
     @property
     def equalize_time_remaining(self):
