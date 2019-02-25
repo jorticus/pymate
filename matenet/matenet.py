@@ -57,6 +57,12 @@ class MateNET(object):
     TYPE_STATUS = 4
     TYPE_LOG = 22
 
+    DEVICE_TYPES = {
+        DEVICE_HUB: 'Hub',
+        DEVICE_MX:  'MX',
+        DEVICE_FX:  'FX'
+    }
+
     def __init__(self, comport, supports_spacemark=None):
         """
         :param comport: The hardware serial port to use (eg. /dev/ttyUSB0 or COM1)
@@ -262,7 +268,29 @@ class MateNET(object):
         
         return devices
 
+    def find_device(self, device_type):
+        """
+        Find which port a device is connected to.
 
+        Note: If you have a hub, you should fill the ports starting from 1,
+        not leaving any gaps. Any empty ports will introduce delay as we wait 
+        for a timeout.
+
+        KeyError is thrown if the device is not connected.
+
+        Usage:
+        port = bus.find_device(MateNET.DEVICE_MX)
+        mx = MateMXDevice(bus, port)
+        """
+        for i in range(0,10):
+            dtype = self.query(0x00, port=i)
+            if dtype and dtype == device_type:
+                print('Found %s device at port %d' % (
+                    MateNET.DEVICE_TYPES[dtype],
+                    i
+                ))
+                return i
+        raise KeyError('%s device not found' % MateNET.DEVICE_TYPES[device_type])
 
 class MateDevice(object):
     """

@@ -7,13 +7,6 @@
 from matenet import MateNET, MateDevice
 from settings import *
 
-DeviceTypes = {
-    0: '-',
-    MateNET.DEVICE_HUB: 'Hub',
-    MateNET.DEVICE_MX:  'MX',
-    MateNET.DEVICE_FX:  'FX'
-}
-
 print("MATE Bus Scan")
 
 # Create a MateNET bus connection
@@ -36,7 +29,7 @@ def print_device(d):
         
         print("Port%d: %s (Rev: %s)" % (
             d.port,
-            DeviceTypes[dtype],
+            MateNET.DEVICE_TYPES[dtype],
             rev
         ))
     return dtype
