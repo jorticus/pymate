@@ -176,6 +176,7 @@ now = datetime.now()
 
 # Calculate datetime of next status collection
 t_next_status = now + STATUS_INTERVAL
+t_next_fx_status = now + FXSTATUS_INTERVAL
 
 # Calculate datetime of next logpage collection
 d = now.date()
@@ -208,6 +209,8 @@ while True:
 				if packet:
 					upload_packet(packet)
 
+		if now >= t_next_fx_status:
+			t_next_fx_status = now + FXSTATUS_INTERVAL
 			if fx:
 				packet = collect_fx()
 				if packet:
