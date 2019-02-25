@@ -100,20 +100,6 @@ class MateNET(object):
                 self.ser.write(b)
                 sleep(FUDGE_FACTOR)
 
-    def _send(self, data):
-        """
-        Send a packet to the MateNET bus
-        :param data: str containing the raw data to send (excluding checksum)
-        """
-        checksum = self._calc_checksum(data)
-        footer = chr((checksum >> 8) & 0xFF) + chr(checksum & 0xFF)
-
-        # First byte has bit8 set (address byte)
-        self._write_9b(data[0], 1)
-
-        # Rest of the bytes have bit8 cleared (data byte)
-        self._write_9b(data[1:] + footer, 0)
-
     @staticmethod
     def _calc_checksum(data):
         """
@@ -145,6 +131,20 @@ class MateNET(object):
                                % (expected_chksum, actual_chksum))
         return packet
 
+    def _send(self, data):
+        """
+        Send a packet to the MateNET bus
+        :param data: str containing the raw data to send (excluding checksum)
+        """
+        checksum = self._calc_checksum(data)
+        footer = chr((checksum >> 8) & 0xFF) + chr(checksum & 0xFF)
+
+        # First byte has bit8 set (address byte)
+        self._write_9b(data[0], 1)
+
+        # Rest of the bytes have bit8 cleared (data byte)
+        self._write_9b(data[1:] + footer, 0)
+
     def _recv(self, timeout=1.0):
         """
         Receive a packet from the MateNET bus, waiting if necessary
@@ -166,6 +166,7 @@ class MateNET(object):
             rawdata += b
 
         return MateNET._parse_packet(rawdata)
+
 
     def send(self, ptype, addr, param=0, port=0):
         """
@@ -204,31 +205,13 @@ class MateNET(object):
         #    raise RuntimeError("Error receiving packet - invalid header")
         return data[1:]
 
-
-class Mate(MateNET):
-    """
-    Emulates the MATE controller, allows communication with any attached devices
-    """
-    def __init__(self, comport, supports_spacemark=None):
-        super(Mate, self).__init__(comport, supports_spacemark)
-
-    def scan(self, port):
-        """
-        Scan for device attached to the specified port
-        :param port: int, 0-10 (root:0)
-        :return: int, the type of device that is attached (see MateNET.DEVICE_*)
-        """
-        result = self.query(0x00, port=port)
-        if result is not None:
-            result = result & 0x00FF
-        return result
+### Higher level protocol functions ###
 
     def query(self, reg, param=0, port=0):
         """
         Query a register and retrieve its value
         :param reg: The register (16-bit address)
         :param param: Optional parameter
-        :param port: Port (0-10)
         :return: The value (16-bit uint)
         """
         resp = self.send(MateNET.TYPE_QUERY, addr=reg, param=param, port=port)
@@ -248,6 +231,69 @@ class Mate(MateNET):
         if resp:
             return None  # TODO: What kind of response do we get from a control packet?
 
+    def scan(self, port=0):
+        """
+        Scan for device attached to the specified port
+        :param port: int, 0-10 (root:0)
+        :return: int, the type of device that is attached (see MateNET.DEVICE_*)
+        """
+        result = self.query(0x00, port=port)
+        if result is not None:
+            result = result & 0x00FF
+        return result
+
+    def enumerate(self):
+        """
+        Scan for device(s) on the bus.
+        Returns a list of device types at each port location
+        """
+        devices = [0]*10
+        
+        # Port 0 will either be a device or a hub.
+        devices[0] = self.query(0x00, port=0)
+        if not devices[0]:
+            raise Exception('No devices found on the bus')
+        
+        # Only scan for other devices if a hub is attached to port 0
+        if devices[0] == MateNET.DEVICE_HUB:
+            for i in range(1,len(devices)):
+                print 'Scanning port '+str(i)
+                devices[i] = self.query(0x00, port=i)
+        
+        return devices
+
+
+
+class MateDevice(object):
+    """
+    Abstract class representing a device attached to the MateNET bus or to a hub.
+
+    Usage:
+    bus = MateNET('COM1')
+    dev = MateDevice(bus, port=0)
+    dev.scan()
+    """
+
+    def __init__(self, matenet, port=0):
+        assert(isinstance(matenet, MateNET))
+        self.matenet = matenet
+        self.port    = port
+
+    # def __init__(self, comport, supports_spacemark=None):
+    #     super(Mate, self).__init__(comport, supports_spacemark)
+
+    def scan(self):
+        return self.matenet.scan(self.port)
+
+    def send(self, ptype, addr, param=0):
+        return self.matenet.send(ptype, addr, param=param, port=self.port)
+
+    def query(self, reg, param=0):
+        return self.matenet.query(reg, param=param, port=self.port)
+
+    def control(self, reg, value):
+        return self.matenet.control(reg, value, port=self.port)
+
     @property
     def revision(self):
         """
@@ -257,3 +303,10 @@ class Mate(MateNET):
         b = self.query(0x0003)
         c = self.query(0x0004)
         return '%.3d.%.3d.%.3d' % (a, b, c)
+
+# For backwards compatibility
+# DEPRECATRED
+class Mate(MateDevice):
+    def __init__(self, comport, supports_spacemark=None):
+        self.bus = MateNET(comport, supports_spacemark)
+        super(Mate, self).__init__(self.bus, port=0)

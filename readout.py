@@ -1,13 +1,17 @@
-from matenet import MateMX
+from matenet import MateNET, MateMXDevice
 from time import sleep
 
 print "MATE emulator (MX)"
 
-# Create a new MATE emulator attached to the specified serial port:
-mate = MateMX('/dev/ttyUSB0')
+
+# Create a MateNET bus connection
+bus = MateNET('/dev/ttyUSB0')
+
+# Create a new MATE emulator attached to the specified port
+mate = MateMXDevice(bus, port=MX_PORT)
 
 # Check that an MX unit is attached and is responding
-mate.scan(0)
+mate.scan()
 
 # Query the device revision
 print "Revision:", mate.revision

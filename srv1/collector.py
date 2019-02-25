@@ -7,7 +7,7 @@
 # (My particular system barely has enough flash space to fit Python!)
 #
 
-from matenet import MateMX
+from matenet import MateNET, MateMXDevice
 from time import sleep
 from datetime import datetime, timedelta, time
 from threading import Thread, BoundedSemaphore
@@ -34,11 +34,14 @@ log.addHandler(ch)
 
 log.info("MATE Data Collector (MX)")
 
+# Create a MateNET bus connection
+bus = MateNET(SERIAL_PORT)
+
 # Create a new MATE emulator
-mate = MateMX(SERIAL_PORT)
+mate = MateMXDevice(bus, port=MX_PORT)
 
 # Check that an MX unit is attached and responding
-mate.scan(MX_PORT)
+mate.scan()
 
 log.info("Revision: " + str(mate.revision))
 

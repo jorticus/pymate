@@ -9,7 +9,7 @@ __author__ = 'Jared'
 
 from value import Value
 from struct import Struct
-from matenet import Mate
+from matenet import MateDevice, MateNET
 
 
 class FXStatusPacket(object):
@@ -83,7 +83,7 @@ class FXStatusPacket(object):
         return fmt.format(**self.__dict__)
 
 
-class MateFX(Mate):
+class MateFXDevice(MateDevice):
     """
     Communicate with an FX unit attached to the MateNET bus
     """
@@ -107,20 +107,20 @@ class MateFX(Mate):
     WARN_COMM_ERROR = 0x40
     WARN_FAN_FAILURE = 0x80
 
-    def __init__(self, comport, supports_spacemark=None):
-        super(MateFX, self).__init__(comport, supports_spacemark)
+    def __init__(self, *args, **kwargs):
+        super(MateFXDevice, self).__init__(*args, **kwargs)
         self.is_230v = False
 
-    def scan(self, port=0):
+    def scan(self, *args):
         """
         Query the attached device to make sure we're communicating with an FX unit
         TODO: Support Hubs
         :param port: int, 0-10 (root:0)
         """
-        devid = super(MateFX, self).scan(port)
+        devid = super(MateFXDevice, self).scan()
         if devid == None:
             raise RuntimeError("No response from the FX unit")
-        if devid != Mate.DEVICE_FX:
+        if devid != MateNET.DEVICE_FX:
             raise RuntimeError("Attached device is not an FX unit! (DeviceID: %s)" % devid)
 
     def get_status(self):
@@ -128,7 +128,7 @@ class MateFX(Mate):
         Request a status packet from the inverter
         :return: A FXStatusPacket
         """
-        resp = self.send(Mate.TYPE_STATUS, addr=1)
+        resp = self.send(MateNET.TYPE_STATUS, addr=1)
         if resp:
             status = FXStatusPacket.from_buffer(resp[1:])
             self.is_230v = status.is_230v
@@ -289,6 +289,12 @@ class MateFX(Mate):
     @property
     def equalize_time_remaining(self):
         return Value(self.query(0x0071), units='h', resolution=0)
+
+# For backwards compatibility
+# DEPRECATED
+def MateFX(comport, supports_spacemark=None, port=0):
+    bus = MateNET(comport, supports_spacemark)
+    return MateFXDevice(bus, port)
 
 
 if __name__ == "__main__":
