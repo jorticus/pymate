@@ -116,24 +116,42 @@ class MateFXDevice(MateDevice):
     Communicate with an FX unit attached to the MateNET bus
     """
     # Error bit-field
-    ERROR_LOW_VAC_OUTPUT = 0x01
-    ERROR_STACKING_ERROR = 0x02
-    ERROR_OVER_TEMP = 0x04
-    ERROR_LOW_BATTERY = 0x08
-    ERROR_PHASE_LOSS = 0x10
-    ERROR_HIGH_BATTERY = 0x20
-    ERROR_SHORTED_OUTPUT = 0x40
-    ERROR_BACK_FEED = 0x80
+    ERROR_LOW_VAC_OUTPUT = 0x01 # Inverter could not supply enough AC voltage to meet demand
+    ERROR_STACKING_ERROR = 0x02 # Communication error among stacked FX inverters (eg. 3 phase system)
+    ERROR_OVER_TEMP      = 0x04 # FX has reached maximum allowable temperature
+    ERROR_LOW_BATTERY    = 0x08 # Battery voltage below low battery cut-out setpoint
+    ERROR_PHASE_LOSS     = 0x10
+    ERROR_HIGH_BATTERY   = 0x20 # Battery voltage rose above safe level for 10 seconds
+    ERROR_SHORTED_OUTPUT = 0x40 
+    ERROR_BACK_FEED      = 0x80 # Another power source was connected to the FX's AC output
 
     # Warning bit-field
-    WARN_ACIN_FREQ_HIGH = 0x01
-    WARN_ACIN_FREQ_LOW = 0x02
-    WARN_ACIN_V_HIGH = 0x04
-    WARN_ACIN_V_LOW = 0x08
+    WARN_ACIN_FREQ_HIGH         = 0x01 # >66Hz or >56Hz
+    WARN_ACIN_FREQ_LOW          = 0x02 # <54Hz or <44Hz
+    WARN_ACIN_V_HIGH            = 0x04 # >140VAC or >270VAC
+    WARN_ACIN_V_LOW             = 0x08 # <108VAC or <207VAC
     WARN_BUY_AMPS_EXCEEDS_INPUT = 0x10
-    WARN_TEMP_SENSOR_FAILED = 0x20
-    WARN_COMM_ERROR = 0x40
-    WARN_FAN_FAILURE = 0x80
+    WARN_TEMP_SENSOR_FAILED     = 0x20 # Internal temperature sensors have failed
+    WARN_COMM_ERROR             = 0x40 # Communication problem between us and the FX
+    WARN_FAN_FAILURE            = 0x80 # Internal cooling fan has failed
+
+    # Reasons that the FX has stopped selling power to the grid
+    # (see self.sell_status)
+    SELL_STOP_REASONS = [
+        1: 'Frequency shift greater than limits',
+        2: 'Island-detected wobble',
+        3: 'VAC over voltage',
+        4: 'Phase lock error',
+        5: 'Charge diode battery volt fault',
+        7: 'Silent command',
+        8: 'Save command',
+        9: 'R60 off at go fast',
+        10: 'R60 off at silent relay',
+        11: 'Current limit sell',
+        12: 'Current limit charge',
+        14: 'Back feed',
+        15: 'Brute sell charge VAC over'
+    ]
 
     def __init__(self, *args, **kwargs):
         super(MateFXDevice, self).__init__(*args, **kwargs)
