@@ -38,8 +38,6 @@ class FXStatusPacket(object):
         self.buy_current      = None  # AC Current the FX is taking from AC input and delivering to batteries + loads
         self.battery_voltage  = None  # Battery Voltage
 
-
-
     @property
     def inv_power(self):
         """

@@ -139,32 +139,28 @@ def collect_status():
 		log.exception("EXCEPTION in collect_status()")
 		return None
 
+last_fx_status_b64 = None
 def collect_fx():
 	"""
 	Collect FX info
 	"""
+	global last_fx_status_b64
 	try:
 		status = fx.get_status()
 		status_b64 = b64encode(status.raw)
 
-		ts, tz = timestamp()
-		return {
-			'type': 'fx-status',
-			'data': status_b64,
-			'ts': ts,
-			'tz': tz,
-			'extra': {
-				'w': int(fx.warnings),
-				'e': int(fx.errors),
-				'out_v': float(fx.output_voltage),
-				'in_v':  float(fx.input_voltage),
-				'inv_i': float(fx.inverter_current),
-				'chg_i': float(fx.charger_current),
-				'in_i':  float(fx.input_current),
-				'sel_i': float(fx.sell_current),
-				't_air': float(fx.temp_air),
+		if last_fx_status_b64 != status_b64:
+			last_fx_status_b64 = status_b64
+			ts, tz = timestamp()
+			return {
+				'type': 'fx-status',
+				'data': status_b64,
+				'ts': ts,
+				'tz': tz,
+				'extra': {
+					't_air': float(fx.temp_air),
+				}
 			}
-		}
 	except:
 		log.exception("EXCEPTION in collect_fx()")
 		return None
