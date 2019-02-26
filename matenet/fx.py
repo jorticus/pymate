@@ -15,84 +15,112 @@ from matenet import MateDevice, MateNET
 class FXStatusPacket(object):
     fmt = Struct('>BBBBBBBBBhBB')
 
-    STATUS_INV_OFF = 0
-    STATUS_SEARCH = 1
-    STATUS_INV_ON = 2
-    STATUS_CHARGE = 3
-    STATUS_SILENT = 4
-    STATUS_FLOAT = 5
-    STATUS_EQ = 6
-    STATUS_CHARGER_OFF = 7
-    STATUS_SUPPORT = 8          # FX is drawing power from batteries to support AC
-    STATUS_SELL_ENABLED = 9     # FX is exporting more power than the loads are drawing
-    STATUS_PASS_THRU = 10       # FX converter is off, passing through line AC
+    def __init__(self, misc=None):
+        self.raw = None
 
-    def __init__(self, a=None, b=None, c=None, l=None, i=None, z=None,
-                 status=None, misc=None, error=None, bat_voltage=None):
-        # TODO: Determine what these variables represent
-        self.a = a
-        self.l = l  # Line voltage? Input AC voltage?
-        self.i = i  # Inverter voltage?
-        self.c = c  # Inverter current?
-        self.b = b  # Line current?
-        self.z = z  # Zer voltage? Output AC voltage?
-        self.status = status
-        self.misc = misc
-        self.error = error
-        self.bat_voltage = bat_voltage
+        self.misc             = misc
+        self.warnings         = None  # See MateFXDevice.WARN_ enum
+        self.error_mode       = None  # See MateFXDevice.ERROR_ bitfield
+        self.ac_mode          = None  # 0: No AC, 1: AC Drop, 2: AC Use
+        self.operational_mode = None  # See MateFXDevice.STATUS_ enum
 
-        # Inverter Current (amps), AC current the FX is delivering to loads
-        # Charger current (amps), AC current the FX is taking from AC input and delivering to batteries
-        # Buy current (amps), AC current the FX is taking from the AC input and delivering to batteries AND pass-thru loads.
-        # AC input voltage (V, 0-255). Voltage seen at FX's AC input. May need x2 multiplier
-        # AC output voltage
-        # Sell current (amps). The Ac current the FX is delivering from batteries to the AC input.
+        self.is_230v = None
+        self.aux_on  = None
+        if misc is not None:
+            self.is_230v = (misc & 0x01 == 0x01)
+            self.aux_on  = (misc & 0x80 == 0x80)
 
-        # Misc byte
-        self.is_230v = misc & 0x01 == 0x01
-        self.aux_on = misc & 0x80 == 0x80
+        self.inverter_current = None  # Ouptut/Inverter AC Current the FX is delivering to loads
+        self.output_voltage   = None  # Output/Inverter AC Voltage (to loads)
+        self.input_voltage    = None  # Input/Line AC Voltage (from grid)
+        self.sell_current     = None  # AC Current the FX is delivering from batteries to AC input (sell)
+        self.chg_current      = None  # AC Current the FX is taking from AC input and delivering to batteries
+        self.buy_current      = None  # AC Current the FX is taking from AC input and delivering to batteries + loads
+        self.battery_voltage  = None  # Battery Voltage
 
-        # TODO: When misc:0 == 1, you must multiply voltages by 2, and divide currents by 2
-        if self.is_230v:
-            # self.z *= 2.0
-            # self.l *= 2.0
-            # self.i *= 2.0
-            # self.c /= 2.0
-            # self.b /= 2.0
-            pass
 
-        # Calculations
-        self.chg_power = Value((self.a * self.l) / 1000.0, units='kW', resolution=2)
-        self.buy_power = Value((self.b * self.l) / 1000.0, units='kW', resolution=2)
-        self.inv_power = Value((self.c * self.i) / 1000.0, units='kW', resolution=2)
-        self.zer_power = Value((self.z * self.i) / 1000.0, units='kW', resolution=2)
 
-        # chg_power: Power into batteries, from AC Input
-        # buy_power: Power into batteries + loads, from AC Input
-        # inv_power: Power to loads
-        # zer_power: ??
+    @property
+    def inv_power(self):
+        """
+        BATTERIES -> AC_OUTPUT
+        Power produced by the inverter from the battery
+        """
+        if self.inverter_current is not None and self.output_voltage is not None:
+            return Value((float(self.inverter_current) * float(self.output_voltage)) / 1000.0, units='kW', resolution=2)
+        return None
+
+    @property
+    def sell_power(self):
+        """
+        BATTERIES -> AC_INPUT
+        Power produced by the inverter from the batteries, sold back to the grid (AC input)
+        """
+        if self.sell_current is not None and self.output_voltage is not None:
+            return Value((float(self.sell_current) * float(self.output_voltage)) / 1000.0, units='kW', resolution=2)
+        return None
+
+    @property
+    def chg_power(self):
+        """
+        AC_INPUT -> BATTERIES
+        Power consumed by the inverter from the AC input to charge the battery bank
+        """
+        if self.chg_current is not None and self.input_voltage is not None:
+            return Value((float(self.chg_current) * float(self.input_voltage)) / 1000.0, units='kW', resolution=2)
+        return None
+
+    @property
+    def buy_power(self):
+        """
+        AC_INPUT -> BATTERIES + AC_OUTPUT
+        """
+        if self.buy_current is not None and self.input_voltage is not None:
+            return Value((float(self.buy_current) * float(self.input_voltage)) / 1000.0, units='kW', resolution=2)
+        return None
 
     @classmethod
     def from_buffer(cls, data):
         values = cls.fmt.unpack(data)
 
-        # [0, 0, 0, 3, 115, 0, 4, 0, 2, (0, 244), 9, 0]
-        # [0, 0, 0, 3, 115, 0, 4, 0, 2, (0, 246), 9, 0]
-        # [0, 0, 0, 3, 114, 0, 4, 0, 2, (0, 242), 9, 0]
-        status = FXStatusPacket(
-            a=values[0],
-            l=values[1],
-            status=values[2],
-            misc=values[3], # 3
-            z=values[4],  # 115, Output Voltage?
-            #values[5] # Unknown?
-            i=values[6], # 4
-            error=bool(values[7] != 0), # 0
-            #values[8], # 2, Unknown?
-            bat_voltage=Value(values[9] / 10.0, units='V', resolution=1),
-            c=values[10], # 9
-            b=values[11] # 0
-        )
+        # Need this to determine whether the system is 230v or 110v
+        misc = values[10]
+
+        status = FXStatusPacket(misc)
+
+        # When misc:0 == 1, you must multiply voltages by 2, and divide currents by 2
+        if status.is_230v:
+            vmul = 2.0; imul = 0.5
+        else:
+            vmul = 1.0; imul = 1.0
+
+        # From MATE2 doc the status packet contains:
+        # Inverter address
+        # Inverter current - AC current the FX is delivering to loads
+        # Charger current - AC current the FX is taking from AC input and delivering to batteries
+        # Buy current - AC current the FX is taking from AC input and delivering to batteries AND loads
+        # AC input voltage
+        # AC output voltage
+        # Sell current - AC current the FX is delivering from batteries to AC input
+        # FX operational mode (0..10)
+        # FX error mode
+        # FX AC mode
+        # FX Bat Voltage
+        # FX Misc
+        # FX Warnings
+
+        status.inverter_current  = Value(values[0] * imul, units='A', resolution=1)
+        status.chg_current       = Value(values[1] * imul, units='A', resolution=1)
+        status.buy_current       = Value(values[2] * imul, units='A', resolution=1)
+        status.input_voltage     = Value(values[3] * vmul, units='V', resolution=1)
+        status.output_voltage    = Value(values[4] * vmul, units='V', resolution=1)
+        status.sell_current      = Value(values[5] * imul, units='A', resolution=1)
+        status.operational_mode  = values[6]
+        status.error_mode        = values[7]
+        status.ac_mode           = values[8]
+        status.battery_voltage   = Value(values[9] / 10.0, units='V', resolution=1)
+        # values[10]: misc byte
+        status.warnings          = values[11]
 
         # Also add the raw packet, in case any of the above changes
         status.raw = data
@@ -103,12 +131,19 @@ class FXStatusPacket(object):
         return "<FXStatusPacket>"
 
     def __str__(self):
+        # Format matches MATE2 LCD readout (FX->STATUS->METER)
         fmt = """FX Status:
-    Battery: {bat_voltage}
-    Inv: {inv_power} Zer: {zer_power}
-    Chg: {chg_power} Buy: {buy_power}
+    Battery: {battery_voltage}
+    Inv: {inv} Zer: {sell}
+    Chg: {chg} Buy: {buy}
 """
-        return fmt.format(**self.__dict__)
+        return fmt.format(
+            battery_voltage=self.battery_voltage,
+            inv=self.inv_power,
+            chg=self.chg_power,
+            sell=self.sell_power,
+            buy=self.buy_power
+        )
 
 
 class MateFXDevice(MateDevice):
@@ -135,9 +170,22 @@ class MateFXDevice(MateDevice):
     WARN_COMM_ERROR             = 0x40 # Communication problem between us and the FX
     WARN_FAN_FAILURE            = 0x80 # Internal cooling fan has failed
 
+    # Operational Mode enum
+    STATUS_INV_OFF = 0
+    STATUS_SEARCH = 1
+    STATUS_INV_ON = 2
+    STATUS_CHARGE = 3
+    STATUS_SILENT = 4
+    STATUS_FLOAT = 5
+    STATUS_EQ = 6
+    STATUS_CHARGER_OFF = 7
+    STATUS_SUPPORT = 8          # FX is drawing power from batteries to support AC
+    STATUS_SELL_ENABLED = 9     # FX is exporting more power than the loads are drawing
+    STATUS_PASS_THRU = 10       # FX converter is off, passing through line AC
+
     # Reasons that the FX has stopped selling power to the grid
     # (see self.sell_status)
-    SELL_STOP_REASONS = [
+    SELL_STOP_REASONS = {
         1: 'Frequency shift greater than limits',
         2: 'Island-detected wobble',
         3: 'VAC over voltage',
@@ -151,7 +199,7 @@ class MateFXDevice(MateDevice):
         12: 'Current limit charge',
         14: 'Back feed',
         15: 'Brute sell charge VAC over'
-    ]
+    }
 
     def __init__(self, *args, **kwargs):
         super(MateFXDevice, self).__init__(*args, **kwargs)
