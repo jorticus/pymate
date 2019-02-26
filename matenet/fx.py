@@ -304,24 +304,24 @@ class MateFXDevice(MateDevice):
 
     @property
     def temp_battery(self):
-        """ Temperature of the battery (DegC, 0..25.5?) """
+        """ Temperature of the battery (Raw, 0..255) """
         # Not verified. I don't have a battery thermometer.
-        return Value(self.query(0x0032) / 10.0, units='C', resolution=1)
+        return self.query(0x0032)
 
     @property
     def temp_air(self):
-        """ Temperature of the air (DegC, 0..25.5) """
-        return Value(self.query(0x0033) / 10.0, units='C', resolution=1)
+        """ Temperature of the air (Raw, 0..255) """
+        return self.query(0x0033)
 
     @property
     def temp_fets(self):
-        """ Temperature of the MOSFET switches (DegC, 0..255) """
-        return Value(self.query(0x0034) / 10.0, units='C', resolution=1)
+        """ Temperature of the MOSFET switches (Raw, 0..255) """
+        return self.query(0x0034)
 
     @property
     def temp_capacitor(self):
-        """ Temperature of the capacitor (DegC, 0..25.5) """
-        return Value(self.query(0x0035) / 10.0, units='C', resolution=1)
+        """ Temperature of the capacitor (Raw, 0..255) """
+        return self.query(0x0035)
 
     @property
     def output_voltage(self):
