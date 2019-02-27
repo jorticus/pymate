@@ -177,7 +177,7 @@ t_next_fx_status = now + FXSTATUS_INTERVAL
 # Calculate datetime of next logpage collection
 d = now.date()
 t = LOGPAGE_RETRIEVAL_TIME
-t_next_logpage = datetime(d.year, d.month, d.day+1, t.hour, t.minute, t.second, t.microsecond)
+t_next_logpage = datetime(d.year, d.month, d.day, t.hour, t.minute, t.second, t.microsecond) + timedelta(days=1)
 log.debug("Next logpage: " + str(t_next_logpage))
 
 # Collect status and log pages
