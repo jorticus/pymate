@@ -18,7 +18,7 @@ To set up communication with an MX charge controller:
 mate_bus = MateNET('COM1')         # Windows
 mate_bus = MateNET('/dev/ttyUSB0') # Linux
 
-mate_mx = MateMX(mate_bus, port=0) # 0: No hub. 1-9: Hub port
+mate_mx = MateMXDevice(mate_bus, port=0) # 0: No hub. 1-9: Hub port
 mate_mx.scan()  # This will raise an exception if the device isn't found
 ```
     
@@ -94,7 +94,7 @@ To set up communication with an FX inverter:
 mate_bus = MateNET('COM1')         # Windows
 mate_bus = MateNET('/dev/ttyUSB0') # Linux
 
-mate_mx = MateFX(mate_bus, port=0) # 0: No hub. 1-9: Hub port
+mate_mx = MateFXDevice(mate_bus, port=0) # 0: No hub. 1-9: Hub port
 mate_fx.scan()
 
 status = mate_fx.get_status()
@@ -113,7 +113,7 @@ mate_fx.inverter_control = 0  # 0: Off, 1: Search, 2: On
 mate_fx.acin_control = 0      # 0: Drop, 1: Use
 mate_fx.charge_control = 0    # 0: Off, 1: Auto, 2: On
 mate_fx.aux_control = 0       # 0: Off, 1: Auto, 2: On
-mate_fx.eq_control = 0        # 0: Off, ??? not sure
+mate_fx.eq_control = 0        # 0: Off, 1: Auto, 2: On
 ```
     
 These are implemented as python properties, so you can read and write them. Writing to them affects the FX unit.
