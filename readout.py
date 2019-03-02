@@ -8,7 +8,7 @@ print "MATE emulator (MX)"
 bus = MateNET('/dev/ttyUSB0')
 
 # Create a new MATE emulator attached to the specified port
-mate = MateMXDevice(bus, port=MX_PORT)
+mate = MateMXDevice(bus)
 
 # Check that an MX unit is attached and is responding
 mate.scan()
