@@ -38,6 +38,8 @@ END_OF_PACKET_TIMEOUT = 0.02 # seconds
 # Retry command this many times if we read back an invalid packet (eg. bad CRC)
 RETRY_PACKET = 2
 
+DEBUG = False
+
 class MateNET(object):
     """
     Interface for the MATE RJ45 bus ("MateNET")
@@ -92,6 +94,8 @@ class MateNET(object):
         return p
 
     def _write_9b(self, data, bit8):
+        if DEBUG:
+            print 'TX: [%d] %s' % (bit8, ' '.join('%.2x' % ord(c) for c in data))
         if self.supports_spacemark:
             self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
             #sleep(0.5)
@@ -171,6 +175,9 @@ class MateNET(object):
             b = self.ser.read()
             rawdata += b
 
+        if DEBUG:
+            print 'RX: %s' % (' '.join('%.2x' % ord(c) for c in rawdata))
+
         return MateNET._parse_packet(rawdata)
 
 
@@ -182,6 +189,8 @@ class MateNET(object):
         :param param: Optional parameter (16-bit uint)
         :return: The raw response (str)
         """
+        if DEBUG:
+            print 'Send [Port%d, Type=0x%.2x, Addr=0x%.4x, Param=0x%.4x]' % (port, ptype, addr, param)
 
         packet = MateNET.TxPacket(port, ptype, addr, param)
         data = None
@@ -191,12 +200,14 @@ class MateNET(object):
 
                 data = self._recv()
                 if not data:
+                    if DEBUG: print "RETRY"
                     continue  # No response - try again
                     #return None
                     
                 break # Received successfully
             except:
                 if i < RETRY_PACKET:
+                    if DEBUG: print "RETRY"
                     continue  # Transmission error - try again
                 raise         # Retry limit reached
 
