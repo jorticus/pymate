@@ -7,11 +7,9 @@
 # (My particular system barely has enough flash space to fit Python!)
 #
 
-from matenet import MateNET, MateMXDevice, MateFXDevice
+from pymate.matenet import MateNET, MateMXDevice, MateFXDevice
 from time import sleep
-from datetime import datetime, timedelta, time
-from threading import Thread, BoundedSemaphore
-from collections import deque
+from datetime import datetime
 from base64 import b64encode
 import urllib2
 import json
