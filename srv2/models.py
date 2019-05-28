@@ -1,5 +1,5 @@
 
-from pymate.matenet import MXStatusPacket, MXLogPagePacket
+from pymate.matenet.mx import MXStatusPacket, MXLogPagePacket
 from pymate.matenet.fx import FXStatusPacket
 import sqlalchemy as sql
 from sqlalchemy.engine.url import URL

@@ -17,5 +17,6 @@ setup(
     url='https://jared.geek.nz/pymate',
     keywords=['outback', 'mate', 'pymate'],
     classifiers=[],
-    packages=['pymate']
+    packages=['pymate', 'pymate.matenet'],
+    install_requires=['pyserial']
 )

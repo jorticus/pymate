@@ -4,8 +4,8 @@
 # and displays the result.
 #
 
-from matenet import MateNET, MateDevice
-from settings import *
+from pymate.matenet import MateNET, MateDevice
+from srv1.settings import SERIAL_PORT
 
 print("MATE Bus Scan")
 
@@ -39,7 +39,7 @@ d0 = MateDevice(bus, port=0)
 dtype = d0.scan()
 if not dtype:
     print('No device connected!')
-    exit
+    exit()
 print_device(d0)
 
 # Child devices attached to a hub

@@ -9,7 +9,7 @@ __author__ = 'Jared'
 
 from pymate.value import Value
 from struct import Struct
-from matenet import MateDevice, MateNET
+from . import MateDevice, MateNET
 
 
 class FXStatusPacket(object):

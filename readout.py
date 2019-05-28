@@ -1,4 +1,4 @@
-from matenet import MateNET, MateMXDevice
+from pymate.matenet import MateNET, MateMXDevice
 from time import sleep
 
 print "MATE emulator (MX)"

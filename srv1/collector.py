@@ -15,7 +15,7 @@ import urllib2
 import json
 import logging
 
-from settings import *
+from .settings import *
 
 log = logging.getLogger('main')
 log.setLevel(logging.DEBUG)

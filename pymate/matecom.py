@@ -9,7 +9,7 @@
 # NOTE: This is intended for communication with the MATE's RS232 port, not Outback's proprietary protocol.
 
 import serial
-from value import Value
+from .value import Value
 
 class MXStatusPacket(object):
     """
