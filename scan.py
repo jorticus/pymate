@@ -5,7 +5,7 @@
 #
 
 from pymate.matenet import MateNET, MateDevice
-from srv1.settings import SERIAL_PORT
+from settings import SERIAL_PORT
 
 print("MATE Bus Scan")
 
@@ -26,12 +26,18 @@ def print_device(d):
             rev = d.revision
         except Exception as e:
             rev = str(e)
-        
-        print("Port%d: %s (Rev: %s)" % (
-            d.port,
-            MateNET.DEVICE_TYPES[dtype],
-            rev
-        ))
+
+        if dtype not in MateNET.DEVICE_TYPES:
+            print("Port%d: Unknown device type: %d" % (
+                d.port,
+                dtype
+            ))
+        else:
+            print("Port%d: %s (Rev: %s)" % (
+                d.port,
+                MateNET.DEVICE_TYPES[dtype],
+                rev
+            ))
     return dtype
 
 # The root device

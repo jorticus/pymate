@@ -1,14 +1,18 @@
 from pymate.matenet import MateNET, MateMXDevice
 from time import sleep
+from settings import SERIAL_PORT
 
 print "MATE emulator (MX)"
 
 
 # Create a MateNET bus connection
-bus = MateNET('/dev/ttyUSB0')
+bus = MateNET(SERIAL_PORT)
+
+# Find an MX device on the bus
+port = bus.find_device(MateNET.DEVICE_MX)
 
 # Create a new MATE emulator attached to the specified port
-mate = MateMXDevice(bus)
+mate = MateMXDevice(bus, port)
 
 # Check that an MX unit is attached and is responding
 mate.scan()
