@@ -10,7 +10,7 @@
 #
 __author__ = 'Jared'
 
-from matenet import MateNET
+from . import MateNET
 from struct import pack
 
 

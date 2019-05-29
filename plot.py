@@ -1,5 +1,5 @@
 #from matecom import MateCom  # For use with MATE RS232 interface
-from matenet import MateNET, MateMXDevice  # For use with proprietry MateNET protocol
+from pymate.matenet import MateNET, MateMXDevice  # For use with proprietry MateNET protocol
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation

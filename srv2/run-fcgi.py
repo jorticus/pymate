@@ -6,7 +6,7 @@
 
 import sys
 from flup.server.fcgi import WSGIServer
-from receiver import app
+from .receiver import app
 
 bindAddress=None
 if len(sys.argv) == 2:

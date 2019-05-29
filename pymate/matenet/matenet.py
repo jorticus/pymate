@@ -24,7 +24,7 @@
 __author__ = 'Jared'
 
 from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
-from cstruct import struct
+from pymate.cstruct import struct
 from time import sleep
 
 # Delay between bytes when space/mark is not supported

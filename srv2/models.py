@@ -1,8 +1,7 @@
 
-from matenet.mx import MXStatusPacket, MXLogPagePacket
-from matenet.fx import FXStatusPacket
+from pymate.matenet.mx import MXStatusPacket, MXLogPagePacket
+from pymate.matenet.fx import FXStatusPacket
 import sqlalchemy as sql
-import sqlalchemy.orm
 from sqlalchemy.engine.url import URL
 from sqlalchemy import Column
 from sqlalchemy.ext.declarative import declarative_base

@@ -14,7 +14,7 @@ import sqlalchemy as sql
 import sqlalchemy.orm
 from contextlib import contextmanager
 from datetime import datetime
-from models import initialize_db, MxStatus, MxLogPage, FxStatus
+from .models import initialize_db, MxStatus, MxLogPage, FxStatus
 
 engine = initialize_db()
 Session = sql.orm.sessionmaker(bind=engine)

@@ -7,8 +7,8 @@
 __author__ = 'Jared'
 
 from struct import Struct
-from value import Value
-from matenet import MateDevice, MateNET
+from pymate.value import Value
+from . import MateDevice, MateNET
 
 
 class MXStatusPacket(object):
