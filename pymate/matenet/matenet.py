@@ -137,7 +137,7 @@ class MateNET(object):
         expected_chksum = (ord(data[-2]) << 8) | ord(data[-1])
         actual_chksum = MateNET._calc_checksum(packet)
         if actual_chksum != expected_chksum:
-            raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:%d, Actual:%d)"
+            raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:%.4x, Actual:%.4x)"
                                % (expected_chksum, actual_chksum))
         return packet
 
