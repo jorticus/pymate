@@ -7,8 +7,8 @@
 __author__ = 'Jared'
 
 from struct import Struct
-from value import Value
-from matenet import Mate
+from pymate.value import Value
+from . import MateDevice, MateNET
 
 
 class MXStatusPacket(object):
@@ -125,20 +125,18 @@ class MXLogPagePacket(object):
         return fmt.format(**self.__dict__)
 
 
-class MateMX(Mate):
+class MateMXDevice(MateDevice):
     """
     Communicate with an MX unit attached to the MateNET bus
     """
-    def scan(self, port=0):
+    def scan(self, *args):
         """
         Query the attached device to make sure we're communicating with an MX unit
-        TODO: Support Hubs
-        :param port: int, 0-10 (root:0)
         """
-        devid = super(MateMX, self).scan(port)
+        devid = super(MateMXDevice, self).scan()
         if devid == None:
             raise RuntimeError("No response from the MX unit")
-        if devid != Mate.DEVICE_MX:
+        if devid != MateNET.DEVICE_MX:
             raise RuntimeError("Attached device is not an MX unit! (DeviceID: %s)" % devid)
 
     def get_status(self):
@@ -146,7 +144,7 @@ class MateMX(Mate):
         Request a status packet from the controller
         :return: A MXStatusPacket
         """
-        resp = self.send(Mate.TYPE_STATUS, addr=1, param=0x00)
+        resp = self.send(MateNET.TYPE_STATUS, addr=1, param=0x00)
         # TODO: Unsure what addr/param are supposed to be
         # param is 00 with no hub attached, or FF with a hub attached?
         # Status packet is returned for any value of addr/param, so probably not important.
@@ -160,7 +158,7 @@ class MateMX(Mate):
         :param day: The day, counting backwards from today (0:Today, -1..-255)
         :return: A MXLogPagePacket
         """
-        resp = self.send(Mate.TYPE_LOG, addr=0, param=-day)
+        resp = self.send(MateNET.TYPE_LOG, addr=0, param=-day)
         if resp:
             return MXLogPagePacket.from_buffer(resp)
 
@@ -226,6 +224,12 @@ class MateMX(Mate):
     @property
     def setpt_float(self):
         return Value(self.query(0x0172) / 10.0, units='V', resolution=1)
+
+# For backwards compatibility
+# DEPRECATED
+def MateMX(comport, supports_spacemark=None, port=0):
+    bus = MateNET(comport, supports_spacemark)
+    return MateMXDevice(bus, port)
 
 
 if __name__ == "__main__":

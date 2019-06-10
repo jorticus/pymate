@@ -8,7 +8,7 @@ import sqlalchemy as sql
 import sqlalchemy.orm
 from contextlib import contextmanager
 from datetime import datetime
-from models import initialize_db, MxStatus, MxLogPage
+from .models import initialize_db, MxStatus, MxLogPage, FxStatus
 
 engine = initialize_db()
 Session = sql.orm.sessionmaker(bind=engine)
@@ -35,6 +35,8 @@ class CustomJSONEncoder(JSONEncoder):
                 return o.to_json()
             if isinstance(o, MxLogPage):
                 return o.to_json()
+            if isinstance(o, FxStatus):
+                return o.to_json()
             iterable = iter(o)
         except TypeError:
             pass
@@ -52,7 +54,7 @@ def index():
 
 
 @app.route('/mate/mx-status', methods=['POST'])
-def add_status():
+def add_mx_status():
     if not request.json:
         abort(400)
 
@@ -70,7 +72,7 @@ def add_status():
 
 
 @app.route('/mate/mx-status', methods=['GET'])
-def get_current_status():
+def get_current_mx_status():
     with session_scope() as session:
         status = session.query(MxStatus).order_by(sql.desc(MxStatus.timestamp)).first()
 
@@ -82,7 +84,7 @@ def get_current_status():
 
 
 @app.route('/mate/mx-logpage', methods=['POST'])
-def add_logpage():
+def add_mx_logpage():
     if not request.json:
         abort(400)
 
@@ -99,11 +101,40 @@ def add_logpage():
 
 
 @app.route('/mate/mx-logpage', methods=['GET'])
-def get_logpages():
+def get_mx_logpages():
     with session_scope() as session:
         page = session.query(MxLogPage).order_by(sql.desc(MxLogPage.timestamp)).first()
         return jsonify(page)
 
+
+@app.route('/mate/fx-status', methods=['POST'])
+def add_fx_status():
+    if not request.json:
+        abort(400)
+
+    if not all(x in request.json for x in ['type', 'data', 'ts', 'tz']):
+        raise Exception("Invalid schema - missing a required field")
+
+    if request.json['type'] != 'fx-status':
+        raise Exception("Invalid packet type")
+
+    with session_scope() as session:
+        status = FxStatus(request.json)
+        session.add(status)
+
+    return jsonify({'status': 'success'}), 201
+
+
+@app.route('/mate/fx-status', methods=['GET'])
+def get_current_fx_status():
+    with session_scope() as session:
+        status = session.query(FxStatus).order_by(sql.desc(FxStatus.timestamp)).first()
+
+        if status:
+            print "Status:", status
+            return jsonify(status)
+        else:
+            return jsonify({})
 
 # @app.route('/mate/mx-logpage/<int:day>', methods=['GET'])
 # def get_logpage(day):

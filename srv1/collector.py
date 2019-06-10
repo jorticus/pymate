@@ -7,17 +7,15 @@
 # (My particular system barely has enough flash space to fit Python!)
 #
 
-from matenet import MateMX
+from pymate.matenet import MateNET, MateMXDevice, MateFXDevice
 from time import sleep
-from datetime import datetime, timedelta, time
-from threading import Thread, BoundedSemaphore
-from collections import deque
+from datetime import datetime
 from base64 import b64encode
 import urllib2
 import json
 import logging
 
-from settings import *
+from .settings import *
 
 log = logging.getLogger('main')
 log.setLevel(logging.DEBUG)
@@ -34,13 +32,35 @@ log.addHandler(ch)
 
 log.info("MATE Data Collector (MX)")
 
-# Create a new MATE emulator
-mate = MateMX(SERIAL_PORT)
+# Create a MateNET bus connection
+bus = MateNET(SERIAL_PORT)
 
-# Check that an MX unit is attached and responding
-mate.scan(MX_PORT)
+mx = None
+fx = None
 
-log.info("Revision: " + str(mate.revision))
+# Find and connect to an MX charge controller
+try:
+	port = bus.find_device(MateNET.DEVICE_MX)
+	mx = MateMXDevice(bus, port)
+	mx.scan()
+	log.info('Connected to MX device on port %d' % port)
+	log.info('Revision: ' + str(mx.revision))
+except Exception as ex:
+	log.exception("Error connecting to MX")
+
+# Find and connect to an FX inverter
+try:
+	port = bus.find_device(MateNET.DEVICE_FX)
+	fx = MateFXDevice(bus, port)
+	fx.scan()
+	log.info('Connected to FX device on port %d' % port)
+	log.info('Revision: ' + str(fx.revision))
+except Exception as ex:
+	log.exception("Error connecting to FX")
+
+
+if not fx and not mx:
+	exit()
 
 def timestamp():
 	""" '2016-06-18T15:13:38.929000' """
@@ -70,7 +90,7 @@ def collect_logpage():
 	If this fails, log and continue
 	"""
 	try:
-		logpage = mate.get_logpage(-1)  # Get yesterday's logpage
+		logpage = mx.get_logpage(-1)  # Get yesterday's logpage
 
 		day = datetime(now.year, now.month, now.day-1)
 
@@ -94,7 +114,7 @@ def collect_status():
 	"""
 	global last_status_b64
 	try:
-		status = mate.get_status()
+		status = mx.get_status()
 		status_b64 = b64encode(status.raw)
 		
 		# Only upload if the status has actually changed (to save bandwidth)
@@ -108,13 +128,39 @@ def collect_status():
 				'tz': tz,
 				'extra': {
 					# To supplement the status packet data
-					'chg_w': float(mate.charger_watts)
+					'chg_w': float(mx.charger_watts)
 				}
 			}
 		else:
 			log.debug('Status unchanged')
 	except:
 		log.exception("EXCEPTION in collect_status()")
+		return None
+
+last_fx_status_b64 = None
+def collect_fx():
+	"""
+	Collect FX info
+	"""
+	global last_fx_status_b64
+	try:
+		status = fx.get_status()
+		status_b64 = b64encode(status.raw)
+
+		if last_fx_status_b64 != status_b64:
+			last_fx_status_b64 = status_b64
+			ts, tz = timestamp()
+			return {
+				'type': 'fx-status',
+				'data': status_b64,
+				'ts': ts,
+				'tz': tz,
+				'extra': {
+					't_air': float(fx.temp_air),
+				}
+			}
+	except:
+		log.exception("EXCEPTION in collect_fx()")
 		return None
 
 ##### COLLECTION STARTS #####
@@ -124,11 +170,12 @@ now = datetime.now()
 
 # Calculate datetime of next status collection
 t_next_status = now + STATUS_INTERVAL
+t_next_fx_status = now + FXSTATUS_INTERVAL
 
 # Calculate datetime of next logpage collection
 d = now.date()
 t = LOGPAGE_RETRIEVAL_TIME
-t_next_logpage = datetime(d.year, d.month, d.day+1, t.hour, t.minute, t.second, t.microsecond)
+t_next_logpage = datetime(d.year, d.month, d.day, t.hour, t.minute, t.second, t.microsecond) + timedelta(days=1)
 log.debug("Next logpage: " + str(t_next_logpage))
 
 # Collect status and log pages
@@ -139,20 +186,29 @@ while True:
 
 		# Time to collect a log page
 		if now >= t_next_logpage:
-			t_next_logpage += timedelta(days=1)
-			log.debug("Next logpage: " + str(t_next_logpage))
+			if mx:
+				t_next_logpage += timedelta(days=1)
+				log.debug("Next logpage: " + str(t_next_logpage))
 
-			packet = collect_logpage()
-			if packet:
-				upload_packet(packet)
+				packet = collect_logpage()
+				if packet:
+					upload_packet(packet)
 
 		# Time to collect status
 		if now >= t_next_status:
 			t_next_status = now + STATUS_INTERVAL
 			
-			packet = collect_status()
-			if packet:
-				upload_packet(packet)
+			if mx:
+				packet = collect_status()
+				if packet:
+					upload_packet(packet)
+
+		if now >= t_next_fx_status:
+			t_next_fx_status = now + FXSTATUS_INTERVAL
+			if fx:
+				packet = collect_fx()
+				if packet:
+					upload_packet(packet)
 		
 		
 	except Exception as e:
