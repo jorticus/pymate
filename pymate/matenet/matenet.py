@@ -63,7 +63,8 @@ class MateNET(object):
     DEVICE_TYPES = {
         DEVICE_HUB: 'Hub',
         DEVICE_MX:  'MX',
-        DEVICE_FX:  'FX'
+        DEVICE_FX:  'FX',
+        DEVICE_FLEXNETDC: 'FLEXnet DC',
     }
 
     def __init__(self, comport, supports_spacemark=None):

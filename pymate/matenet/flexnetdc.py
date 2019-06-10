@@ -60,15 +60,13 @@ class DCStatusPacket(object):
 """
         return fmt.format(**self.__dict__)
 
-class MateFlexNetDC(Mate):
+class MateDCDevice(Mate):
     """
-    Communicate with an FLEXnet DC unit attached to the MateNET bus
+    Communicate with a FLEXnet DC unit attached to the MateNET bus
     """
-    def scan(self, port=0):
+    def scan(self):
         """
         Query the attached device to make sure we're communicating with an FLEXnet DC unit
-        TODO: Support Hubs
-        :param port: int, 0-10 (root:0)
         """
         devid = super(MateFlexNetDC, self).scan(port)
         if devid == None:

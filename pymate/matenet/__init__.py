@@ -3,7 +3,7 @@ __author__ = 'Jared'
 from matenet import MateNET, MateDevice
 from mx import MateMXDevice
 from fx import MateFXDevice
-from flexnetdc import MateFlexNetDC
+from flexnetdc import MateDCDevice
 
 # DEPRECATED:
 from matenet import Mate
