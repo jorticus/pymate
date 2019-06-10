@@ -1,4 +1,4 @@
-from matenet import MateNET, MateFXDevice
+from pymate.matenet import MateNET, MateFXDevice
 from time import sleep
 
 print "MATE emulator (FX)"

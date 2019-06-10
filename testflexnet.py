@@ -1,4 +1,4 @@
-from matenet import MateNET, MateDCDevice
+from pymate.matenet import MateNET, MateDCDevice
 from time import sleep
 
 print "MATE emulator (FLEXnet DC)"
