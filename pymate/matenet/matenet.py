@@ -26,6 +26,7 @@ __author__ = 'Jared'
 from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
 from pymate.cstruct import struct
 from time import sleep
+import logging
 
 # Delay between bytes when space/mark is not supported
 # This is needed to ensure changing the parity between even/odd only affects one byte at a time
@@ -37,8 +38,6 @@ END_OF_PACKET_TIMEOUT = 0.02 # seconds
 
 # Retry command this many times if we read back an invalid packet (eg. bad CRC)
 RETRY_PACKET = 2
-
-DEBUG = False
 
 class MateNET(object):
     """
@@ -79,6 +78,8 @@ class MateNET(object):
             self.ser = Serial(comport, 9600, parity=PARITY_ODD)
             self.ser.timeout = 1.0
 
+        self.log = logging.getLogger('mate.ser')
+
         self.supports_spacemark = supports_spacemark
         if self.supports_spacemark is None:
             self.supports_spacemark = (
@@ -94,8 +95,9 @@ class MateNET(object):
         return p
 
     def _write_9b(self, data, bit8):
-        if DEBUG:
-            print 'TX: [%d] %s' % (bit8, ' '.join('%.2x' % ord(c) for c in data))
+        if self.log.isEnabledFor(logging.DEBUG):
+            self.log.debug('TX: [%d] %s', bit8, (' '.join('%.2x' % ord(c) for c in data)))
+
         if self.supports_spacemark:
             self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
             #sleep(0.5)
@@ -175,8 +177,8 @@ class MateNET(object):
             b = self.ser.read()
             rawdata += b
 
-        if DEBUG:
-            print 'RX: %s' % (' '.join('%.2x' % ord(c) for c in rawdata))
+        if self.log.isEnabledFor(logging.DEBUG):
+            self.log.debug('RX: %s', (' '.join('%.2x' % ord(c) for c in rawdata)))
 
         return MateNET._parse_packet(rawdata)
 
@@ -189,8 +191,8 @@ class MateNET(object):
         :param param: Optional parameter (16-bit uint)
         :return: The raw response (str)
         """
-        if DEBUG:
-            print 'Send [Port%d, Type=0x%.2x, Addr=0x%.4x, Param=0x%.4x]' % (port, ptype, addr, param)
+        if self.log.isEnabledFor(logging.DEBUG):
+            self.log.debug('Send [Port%d, Type=0x%.2x, Addr=0x%.4x, Param=0x%.4x]', port, ptype, addr, param)
 
         packet = MateNET.TxPacket(port, ptype, addr, param)
         data = None
@@ -200,14 +202,14 @@ class MateNET(object):
 
                 data = self._recv()
                 if not data:
-                    if DEBUG: print "RETRY"
+                    self.log.debug('RETRY')
                     continue  # No response - try again
                     #return None
                     
                 break # Received successfully
             except:
                 if i < RETRY_PACKET:
-                    if DEBUG: print "RETRY"
+                    self.log.debug('RETRY')
                     continue  # Transmission error - try again
                 raise         # Retry limit reached
 
@@ -303,50 +305,3 @@ class MateNET(object):
                 ))
                 return i
         raise KeyError('%s device not found' % MateNET.DEVICE_TYPES[device_type])
-
-class MateDevice(object):
-    """
-    Abstract class representing a device attached to the MateNET bus or to a hub.
-
-    Usage:
-    bus = MateNET('COM1')
-    dev = MateDevice(bus, port=0)
-    dev.scan()
-    """
-
-    def __init__(self, matenet, port=0):
-        assert(isinstance(matenet, MateNET))
-        self.matenet = matenet
-        self.port    = port
-
-    # def __init__(self, comport, supports_spacemark=None):
-    #     super(Mate, self).__init__(comport, supports_spacemark)
-
-    def scan(self):
-        return self.matenet.scan(self.port)
-
-    def send(self, ptype, addr, param=0):
-        return self.matenet.send(ptype, addr, param=param, port=self.port)
-
-    def query(self, reg, param=0):
-        return self.matenet.query(reg, param=param, port=self.port)
-
-    def control(self, reg, value):
-        return self.matenet.control(reg, value, port=self.port)
-
-    @property
-    def revision(self):
-        """
-        :return: The revision of the attached device (Format "000.000.000")
-        """
-        a = self.query(0x0002)
-        b = self.query(0x0003)
-        c = self.query(0x0004)
-        return '%.3d.%.3d.%.3d' % (a, b, c)
-
-# For backwards compatibility
-# DEPRECATRED
-class Mate(MateDevice):
-    def __init__(self, comport, supports_spacemark=None):
-        self.bus = MateNET(comport, supports_spacemark)
-        super(Mate, self).__init__(self.bus, port=0)
