@@ -147,7 +147,7 @@ class MateNETPJON(object):
 
                             buffer.append(b)
 
-        self.log.info('RX TIMEOUT')
+        self.log.debug('RX TIMEOUT')
         return None
 
     def recv(self, timeout=1.0):

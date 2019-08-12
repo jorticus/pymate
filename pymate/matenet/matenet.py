@@ -51,6 +51,9 @@ class MateNET(object):
         # Retry command this many times if we read back an invalid packet (eg. bad CRC)
         self.RETRY_PACKET = 2
 
+        # Block for this long to receive a packet
+        self.RX_TIMEOUT = 1.0 # seconds
+
     def send(self, ptype, addr, param=0, port=0):
         """
         Send a MateNET packet to the bus (as if it was sent by a MATE unit) and return the response
@@ -68,7 +71,7 @@ class MateNET(object):
             try:
                 self.port.send(packet.to_buffer())
 
-                data = self.port.recv()
+                data = self.port.recv(self.RX_TIMEOUT)
                 if not data:
                     self.log.debug('RETRY')
                     continue  # No response - try again
@@ -141,14 +144,25 @@ class MateNET(object):
         devices[0] = self.query(0x00, port=0)
         if not devices[0]:
             raise Exception('No devices found on the bus')
+        self._log_devicetype(0, devices[0])
         
         # Only scan for other devices if a hub is attached to port 0
         if devices[0] == MateNET.DEVICE_HUB:
             for i in range(1,len(devices)):
-                self.log.info('Scanning port %d', i)
                 devices[i] = self.query(0x00, port=i)
-        
+                self._log_devicetype(i, devices[i])
+
         return devices
+
+    def _log_devicetype(self, port, dtype):
+        if self.log.isEnabledFor(logging.INFO):
+            if dtype:
+                if dtype not in MateNET.DEVICE_TYPES:
+                    self.log.warn("Port%d: Unknown device type: %d", port, dtype)
+                else:
+                    self.log.info("Port%d: %s", port, MateNET.DEVICE_TYPES[dtype])
+            else:
+                self.log.info("Port%d: -", port)
 
     def find_device(self, device_type):
         """
