@@ -4,7 +4,7 @@
 # and displays the result.
 #
 
-from pymate.matenet import MateNET, MateNETOverPJON, MateDevice
+from pymate.matenet import MateNET, MateNETPJON, MateDevice
 from settings import SERIAL_PORT
 import logging
 
@@ -17,7 +17,9 @@ ch = logging.StreamHandler()
 print("MATE Bus Scan")
 
 # Create a MateNET bus connection, connected via PJON bus
-bus = MateNETOverPJON(SERIAL_PORT)
+port = MateNETPJON(SERIAL_PORT)
+bus = MateNET(port)
+bus.RETRY_PACKET = 0
 
 def print_device(d):
     dtype = d.scan()
