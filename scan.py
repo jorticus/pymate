@@ -4,13 +4,23 @@
 # and displays the result.
 #
 
-from pymate.matenet import MateNET, MateDevice
-from settings import SERIAL_PORT
+from pymate.matenet import MateNET, MateNETPJON, MateDevice
+import settings
 
 print("MATE Bus Scan")
 
 # Create a MateNET bus connection
-bus = MateNET(SERIAL_PORT)
+
+if settings.SERIAL_PROTO == 'PJON':
+    port = MateNETPJON(settings.SERIAL_PORT)
+    bus = MateNET(port)
+
+    # PJON is more reliable, so we don't need to retry packets
+    bus.RETRY_PACKET = 0
+
+else:
+    bus = MateNET(settings.SERIAL_PORT)
+
 
 def print_device(d):
     dtype = d.scan()
