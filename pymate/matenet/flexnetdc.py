@@ -11,7 +11,7 @@ __author__ = 'Jared'
 
 from pymate.value import Value
 from pymate.cstruct import Struct
-from pymate.matenet import Mate
+from . import MateDevice, MateNET
 
 class DCStatusPacket(object):
     fmt = Struct('>28B')
@@ -71,7 +71,7 @@ class MateDCDevice(MateDevice):
         devid = super(MateFlexNetDC, self).scan()
         if devid == None:
             raise RuntimeError("No response from the FLEXnet DC unit")
-        if devid != MateDevice.DEVICE_FLEXNETDC:
+        if devid != MateNET.DEVICE_FLEXNETDC:
             raise RuntimeError("Attached device is not a FLEXnet DC unit! (DeviceID: %s)" % devid)
 
     def get_status(self):
@@ -79,8 +79,8 @@ class MateDCDevice(MateDevice):
         Request a status packet from the FLEXnet DC
         :return: A DCStatusPacket
         """
-        resp1 = self.send(MateDevice.TYPE_STATUS, addr=1)
-        resp2 = self.send(MateDevice.TYPE_STATUS, addr=2) # TODO: This also returns data!
+        resp1 = self.send(MateNET.TYPE_STATUS, addr=1)
+        resp2 = self.send(MateNET.TYPE_STATUS, addr=2) # TODO: This also returns data!
         if resp1 and resp2:
             print 'RAW[1]:', (' '.join("{:02x}".format(ord(c)) for c in resp1[1:]))
             print 'RAW[2]:', (' '.join("{:02x}".format(ord(c)) for c in resp2[1:]))
@@ -94,7 +94,7 @@ class MateDCDevice(MateDevice):
         """
         # TODO: This doesn't return anything. It must have a different command.
         # The UserGuide does mention having access to log pages
-        #resp = self.send(MateDevice.TYPE_LOG, addr=0, param=-day)
+        #resp = self.send(MateNET.TYPE_LOG, addr=0, param=-day)
         #if resp:
         #    print 'RAW:', (' '.join("{:02x}".format(ord(c)) for c in resp[1:]))
         #    #return DCLogPagePacket.from_buffer(resp)
