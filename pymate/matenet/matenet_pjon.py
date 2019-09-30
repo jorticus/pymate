@@ -24,8 +24,11 @@ RX_RECV = 1
 
 ID_BROADCAST = 0
 
+TARGET_DEVICE = 0x0A
+TARGET_MATE = 0x0B
+
 class MateNETPJON(object):
-    def __init__(self, comport, baud=9600):
+    def __init__(self, comport, baud=9600, target=TARGET_DEVICE):
         if isinstance(comport, Serial):
             self.ser = comport
         else:
@@ -36,6 +39,7 @@ class MateNETPJON(object):
         self.log = logging.getLogger('mate.pjon')
         self.rx_buffer = []
         self.rx_state = RX_IDLE
+        self.target = target
 
     def _build_frame(self, data):
         yield SFSP_START
@@ -50,7 +54,7 @@ class MateNETPJON(object):
         """
         Send a packet to PJON bus
         """
-        data = [ord(c) for c in data] # TODO: Hacky
+        data = [self.target] + [ord(c) for c in data] # TODO: Hacky
 
         # NOTE: We are using a very watered down version of the PJON spec
         # since this is intended to be used as a 1:1 communication over a USB serial bus.
@@ -216,6 +220,9 @@ class MateNETPJON(object):
                     packet_len,
                     (' '.join('%.2x' % b for b in payload))
                 )
+
+            if len(payload) == 1:
+                raise RuntimeError("PJON error: Error returned from controller: %.2x" % (payload[0]))
 
             return ''.join(chr(c) for c in payload) # TODO: Hacky
 
