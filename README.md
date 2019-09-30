@@ -153,5 +153,19 @@ and uploads it to a remote server via a REST API.
 The remote server then stores the received data into a database of your choice.
 
 
+## PJON Bridge
+
+The default serial interface doesn't always work well, and it's not the most efficient,
+so there is an alternative protocol you can use which pipes the data to an Arduino via PJON protocol.
+
+To use this alternative protocol:
+
+```python
+port = MateNETPJON('COM1')
+bus = MateNET(port)
+```
+
+See [this page](https://github.com/jorticus/uMATE/blob/master/examples/Bridge/Bridge.ino) in my uMATE project for an example bridge implementation.
+
 
 I am open to contributions, especially if you can test it with any devices I don't have.
