@@ -8,11 +8,16 @@
 # This pretends to be an MX device so we can test the MATE unit without
 # needing it to be connected to the unit.
 #
+# USAGE:
+# python -m pymate.matenet.tester
+#
 __author__ = 'Jared'
 
-from . import MateNET
+from pymate.matenet import MateNET, MateNETPJON, MateDevice
 from struct import pack
-
+import settings
+import time
+import logging
 
 class MateTester(MateNET):
     """
@@ -26,14 +31,14 @@ class MateTester(MateNET):
         :param payload: Packet payload (str)
         """
         data = chr(0x03) + payload  # TODO: not sure why 0x03 here
-        self._send(data)
+        self.port.send(data)
 
     def recv_packet(self, timeout=1.0):
         """
         Receive a MateNET packet
         :return: (port:int, type:int, payload:str) or None if no packet received
         """
-        data = self._recv(timeout)
+        data = self.port.recv(timeout)
         if not data:
             return None
 
@@ -497,11 +502,19 @@ class HubEmulator(MateTester):
 
 
 if __name__ == "__main__":
-    comport = 'COM8'
-    #unit = HubEmulator(comport)
-    unit = MXEmulator(comport)
-    #unit = FXEmulator(comport)
-    #unit = FlexNETDCEmulator(comport)
+    log = logging.getLogger('mate')
+    log.setLevel(logging.DEBUG)
+    log.addHandler(logging.StreamHandler())
+
+    if settings.SERIAL_PROTO == 'PJON':
+        port = MateNETPJON(settings.SERIAL_PORT, target=0x0B)
+    else:
+        port = settings.SERIAL_PORT
+
+    #unit = HubEmulator(port)
+    unit = MXEmulator(port)
+    #unit = FXEmulator(port)
+    #unit = FlexNETDCEmulator(port)
 
     print "Running"
     unit.run()
