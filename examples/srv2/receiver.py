@@ -77,7 +77,7 @@ def get_current_mx_status():
         status = session.query(MxStatus).order_by(sql.desc(MxStatus.timestamp)).first()
 
         if status:
-            print "Status:", status
+            print("Status:", status)
             return jsonify(status)
         else:
             return jsonify({})
@@ -131,7 +131,7 @@ def get_current_fx_status():
         status = session.query(FxStatus).order_by(sql.desc(FxStatus.timestamp)).first()
 
         if status:
-            print "Status:", status
+            print("Status:", status)
             return jsonify(status)
         else:
             return jsonify({})

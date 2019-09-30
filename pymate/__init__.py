@@ -1,2 +1,2 @@
 
-from matenet import *
+from .matenet import *

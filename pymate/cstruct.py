@@ -11,7 +11,7 @@ def struct(fmt, fields):
     fields: a tuple of names to match to each member in the struct (tuple of str)
     """
     fmt = Struct(fmt)
-    test = fmt.unpack_from(''.join('\0' for i in range(fmt.size)))
+    test = fmt.unpack_from(b''.join(b'\0' for i in range(fmt.size)))
     nfields = len(test)
 
     if len(fields) != nfields:

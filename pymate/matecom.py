@@ -60,4 +60,4 @@ if __name__ == "__main__":
     # Test
     mate = MateCom('COM1')
     status = mate.read_status()
-    print status.__dict__
+    print(status.__dict__)

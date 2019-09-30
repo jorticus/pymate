@@ -2,7 +2,7 @@ from pymate.matenet import MateNET, MateMXDevice
 from time import sleep
 from settings import SERIAL_PORT
 
-print "MATE emulator (MX)"
+print("MATE emulator (MX)")
 
 
 # Create a MateNET bus connection
@@ -18,17 +18,17 @@ mate = MateMXDevice(bus, port)
 mate.scan()
 
 # Query the device revision
-print "Revision:", mate.revision
+print("Revision:", mate.revision)
 
 
-print "Getting log page... (day:-1)"
+print("Getting log page... (day:-1)")
 logpage = mate.get_logpage(-1)
-print logpage
+print(logpage)
 
 while True:
-    print "Status:"
+    print("Status:")
     status = mate.get_status()
-    print status
+    print(status)
 
     sleep(1.0)
 

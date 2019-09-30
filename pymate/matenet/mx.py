@@ -234,8 +234,8 @@ def MateMX(comport, supports_spacemark=None, port=0):
 
 if __name__ == "__main__":
     status = MXStatusPacket.from_buffer('\x85\x82\x85\x00\x69\x3f\x01\x00\x1d\x01\x0c\x02\x6a')
-    print status
+    print(status)
 
     #logpage = MXLogPagePacket.from_buffer('\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10\x01')
     logpage = MXLogPagePacket.from_buffer('\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01')
-    print logpage
+    print(logpage)
