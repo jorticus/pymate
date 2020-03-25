@@ -46,23 +46,23 @@ ports = bus.enumerate()
 
 # Find and connect to an MX charge controller
 try:
-	port = bus.find_device(MateNET.DEVICE_MX)
-	mx = MateMXDevice(bus, port)
-	mx.scan()
-	log.info('Connected to MX device')
-	log.info('Revision: ' + str(mx.revision))
+    port = bus.find_device(MateNET.DEVICE_MX)
+    mx = MateMXDevice(bus, port)
+    mx.scan()
+    log.info('Connected to MX device')
+    log.info('Revision: ' + str(mx.revision))
 except Exception as ex:
-	log.exception("Error connecting to MX")
+    log.exception("Error connecting to MX")
 
 # Find and connect to an FX inverter
 try:
-	port = bus.find_device(MateNET.DEVICE_FX)
-	fx = MateFXDevice(bus, port)
-	fx.scan()
-	log.info('Connected to FX device')
-	log.info('Revision: ' + str(fx.revision))
+    port = bus.find_device(MateNET.DEVICE_FX)
+    fx = MateFXDevice(bus, port)
+    fx.scan()
+    log.info('Connected to FX device')
+    log.info('Revision: ' + str(fx.revision))
 except Exception as ex:
-	log.exception("Error connecting to FX")
+    log.exception("Error connecting to FX")
 
 
 
