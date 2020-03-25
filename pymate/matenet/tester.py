@@ -52,7 +52,19 @@ class MateTester(MateNET):
             #try:
                 packet = self.recv_packet(timeout=5.0)
                 if packet:
-                    self.packet_received(packet)
+                    # print("Packet: [Port:%d Type:%d Payload:%s]" % (
+                    #     packet[0],
+                    #     packet[1],
+                    #     packet[2]
+                    # ))
+
+                    if not self.packet_received(packet):
+                        # port, ptype, payload
+                        print("Unhandled packet: [Port:%d Type:%d Payload:%s]" % (
+                            packet[0],
+                            packet[1],
+                            packet[2]
+                        ))
             #except Exception as e:
             #    print e
             #    continue
@@ -66,6 +78,9 @@ class MateTester(MateNET):
         _, ptype, _ = packet
         if ptype == MateNET.TYPE_QUERY:
             self.packet_query(packet)
+            return True
+        elif ptype == MateNET.TYPE_CONTROL:
+            self.packet_control(packet)
             return True
         else:
             return False
@@ -81,12 +96,27 @@ class MateTester(MateNET):
         result = self.process_query(port, query)
         self.send_packet(pack('>H', result))
 
+    def packet_control(self, packet):
+        """
+        The MATE wants to write a register
+        """
+        port, _, payload = packet
+        query = MateNET.QueryPacket.from_buffer(payload)
+        print "Control:", query
+
+        result = self.process_control(port, query)
+        self.send_packet(pack('>H', result))
+
     def process_query(self, port, query):
         """
         Query a register, and return the value to the MATE
         (Override this in your subclass)
         """
         print "Unknown query! (0x%.4x, port:%d)" % (query.reg, port)
+        return 0
+
+    def process_control(self, port, query):
+        print "Unknown control! (0x%.4x, port:%d)" % (query.reg, port)
         return 0
 
 
@@ -100,19 +130,18 @@ class MXEmulator(MateTester):
     def packet_received(self, packet):
         # Let the superclass handle packets first
         handled = super(MXEmulator, self).packet_received(packet)
+        if handled:
+            return True
 
         # Unknown packet, try handle it ourselves:
-        if not handled:
-            _, ptype, _ = packet
-            if ptype == MateNET.TYPE_STATUS:
-                self.packet_status(packet)
-                return True
-            elif ptype == MateNET.TYPE_LOG:
-                self.packet_log(packet)
-                return True
-            else:
-                print "Received:", packet
-                return False
+        _, ptype, _ = packet
+        if ptype == MateNET.TYPE_STATUS:
+            self.packet_status(packet)
+            return True
+        elif ptype == MateNET.TYPE_LOG:
+            self.packet_log(packet)
+            return True
+        return False
 
     def packet_status(self, packet):
         """
@@ -241,16 +270,15 @@ class FXEmulator(MateTester):
     def packet_received(self, packet):
         # Let the superclass handle packets first
         handled = super(FXEmulator, self).packet_received(packet)
+        if handled:
+            return True
 
         # Unknown packet, try handle it ourselves:
-        if not handled:
-            _, ptype, _ = packet
-            if ptype == MateNET.TYPE_STATUS:
-                self.packet_status(packet)
-                return True
-            else:
-                print "Received:", packet
-                return False
+        _, ptype, _ = packet
+        if ptype == MateNET.TYPE_STATUS:
+            self.packet_status(packet)
+            return True
+        return False
 
     def packet_status(self, packet):
         """
@@ -400,16 +428,16 @@ class FlexNETDCEmulator(MateTester):
     def packet_received(self, packet):
         # Let the superclass handle packets first
         handled = super(FlexNETDCEmulator, self).packet_received(packet)
-
+        if handled:
+            return True
+        
         # Unknown packet, try handle it ourselves:
-        if not handled:
-            _, ptype, _ = packet
-            if ptype == MateNET.TYPE_STATUS:
-                self.packet_status(packet)
-                return True
-            else:
-                print "Received:", packet
-                return False
+        _, ptype, _ = packet
+        if ptype == MateNET.TYPE_STATUS:
+            self.packet_status(packet)
+            return True
+            pass
+        return False
 
     def packet_status(self, packet):
         """
@@ -417,8 +445,31 @@ class FlexNETDCEmulator(MateTester):
         to see the effect of various values
         """
         print "Received status packet, sending dummy data. payload:", packet
+        #        
+        # 104 00 03 00 00 00 00 00 00 64 00 00 00 00 00 6b
+        #self.send_packet('\x00\x03\x00\x00\x00\x00\x00\x00\x64\x00\x00\x00\x00')
+        #self.send_packet('\x03\x00\x00\x00\x00\x00\x00\x64\x00\x00\x00\x00\x00\x00\x01\x21\x00\x03\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00')
+        #self.send_packet('\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF')
+        #self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+        #self.send_packet('\x0b\x04\x00\x01\x00\x00\x00\x00\x00\x00\x64\x00\x00\x00\x00\x00\x69')
+        self.send_packet('\x0b\x04\x00\x01\x00\x00\x00\x00\x00\x00\x64\x00\x00\x00\x00')
+        #self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+        # TODO: All of these cause COMMS errors???
 
-        self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+
+    def process_control(self, port, query):
+        if query.reg == 0x4004:
+            # This is sent periodically by the MATE to a DC
+            # Unsure what it does, but the DC just echoes the same value back...
+            # If you don't reply, the MATE shows a COMMS error
+            return query.param
+
+        # RSOC write
+        elif query.reg == 0x00D5: 
+            return query.param
+
+        # Don't use inherited registers
+        return 0
 
     def process_query(self, port, query):
         """
@@ -430,12 +481,23 @@ class FlexNETDCEmulator(MateTester):
             return 4 #self.DEVICE
 
         # Revision (2.3.4)
+        elif query.reg == 0x0001:
+            return 0  # Not sure what this is
         elif query.reg == 0x0002:
             return 11
         elif query.reg == 0x0003:
             return 22
         elif query.reg == 0x0004:
             return 33
+
+
+        # State of charge
+        elif query.reg == 0x00D5:
+            return 100 # percent
+        elif query.reg == 0x00D8:
+            return 100
+
+        # Don't use inherited registers
         return 0
 
 
@@ -502,9 +564,9 @@ class HubEmulator(MateTester):
 
 
 if __name__ == "__main__":
-    log = logging.getLogger('mate')
-    log.setLevel(logging.DEBUG)
-    log.addHandler(logging.StreamHandler())
+    #log = logging.getLogger('mate')
+    #log.setLevel(logging.DEBUG)
+    #log.addHandler(logging.StreamHandler())
 
     if settings.SERIAL_PROTO == 'PJON':
         port = MateNETPJON(settings.SERIAL_PORT, target=0x0B)
@@ -512,9 +574,9 @@ if __name__ == "__main__":
         port = settings.SERIAL_PORT
 
     #unit = HubEmulator(port)
-    unit = MXEmulator(port)
+    #unit = MXEmulator(port)
     #unit = FXEmulator(port)
-    #unit = FlexNETDCEmulator(port)
+    unit = FlexNETDCEmulator(port)
 
     print "Running"
     unit.run()
