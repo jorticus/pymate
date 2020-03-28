@@ -34,6 +34,9 @@ class MateNET(object):
     TYPE_CONTROL = 3
     TYPE_STATUS = 4
     TYPE_LOG = 22
+
+    TYPE_READ = 2
+    TYPE_WRITE = 3
     
     TYPE_DEC   = 0
     TYPE_DIS   = 0
