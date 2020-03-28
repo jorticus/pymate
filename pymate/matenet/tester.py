@@ -593,6 +593,8 @@ if __name__ == "__main__":
     log.addHandler(logging.StreamHandler())
 
     if settings.SERIAL_PROTO == 'PJON':
+        # NOTE: Use high baud rate to ensure we respond quickly enough for the MATE.
+        # If you don't respond in time, MATE will get the hub port mappings wrong.
         port = MateNETPJON(settings.SERIAL_PORT, 1000000, target=0x0B)
     else:
         port = settings.SERIAL_PORT

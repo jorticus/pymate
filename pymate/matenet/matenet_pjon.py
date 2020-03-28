@@ -58,25 +58,41 @@ class MateNETPJON(object):
 
         # NOTE: We are using a very watered down version of the PJON spec
         # since this is intended to be used as a 1:1 communication over a USB serial bus.
-        
-        header = 0x02
+
+        header_len = 5
+        total_len = len(data) + header_len
+        use_crc32 = ((len(data) + header_len) > 15)
+
+        header = 0x02 # PJON_TX_INFO_BIT
+        if use_crc32:
+            header |= 0b00100000 # PJON_CRC_BIT
+            total_len += 4
+        else:
+            total_len += 1
 
         # Prepare header
         buffer = []
-        total_len = len(data) + 6
         buffer.append(target_device_id)
         buffer.append(header)
         buffer.append(total_len)
         crc_h = self._crc8(buffer)
         buffer.append(crc_h)
-        buffer.append(self.device_id)  # bit2 in header must be set
+        buffer.append(self.device_id)  # PJON_TX_INFO_BIT in header must be set
 
         # Add payload
         buffer += list(data)
 
         # Compute CRC(Header + Payload)
-        crc_p = self._crc8(buffer)
-        buffer.append(crc_p)
+        if use_crc32:
+            # If packet > 15 bytes then we must use a 32-bit CRC
+            crc_p = self._crc32(buffer)
+            buffer.append((crc_p >> 24) & 0xFF)
+            buffer.append((crc_p >> 16) & 0xFF)
+            buffer.append((crc_p >> 8) & 0xFF)
+            buffer.append((crc_p) & 0xFF)
+        else:
+            crc_p = self._crc8(buffer)
+            buffer.append(crc_p)
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('TX: %s', (' '.join('%.2x' % c for c in buffer)))
@@ -96,6 +112,20 @@ class MateNETPJON(object):
                 b   >>= 1
                 if odd: crc ^= 0x97
         return crc
+
+    def _crc32(self, data):
+        """
+        See PJON\src\utils\crc\PJON_CRC32.h
+        """
+        crc = 0xFFFFFFFF
+        for b in data:
+            crc ^= (b & 0xFF)
+            for i in range(8):
+                odd = crc & 1
+                crc >>= 1
+                if odd:
+                    crc ^= 0xEDB88320
+        return crc ^ 0xFFFFFFFF
 
     def _recv_frame(self, timeout=1.0):
         """
@@ -185,6 +215,8 @@ class MateNETPJON(object):
             if packet_len > len(data):
                 raise RuntimeError('PJON error: Not enough bytes')
 
+            use_crc32 = (header & 0b00100000)
+
             # Validate header CRC
             header_crc_actual = self._crc8(data[0:i])
             header_crc        = data[i]; i += 1
@@ -200,18 +232,24 @@ class MateNETPJON(object):
                 raise RuntimeError('PJON error: ACK requested but not supported')
             if header & 0b00010000:
                 raise RuntimeError('PJON error: Network services not supported')
-            if header & 0b01100000:
-                raise RuntimeError('PJON error: Extended length/CRC not supported')
+            if header & 0b01000000:
+                raise RuntimeError('PJON error: Extended length (>=200 bytes) not supported')
             if header & 0b10000000:
                 raise RuntimeError('PJON error: Packet identification not supported')
 
             payload     = data[i:packet_len-1];
 
             # Validate CRC(Header + Payload)
-            payload_crc_actual = self._crc8(data[0:-1])
-            payload_crc        = data[packet_len-1]
-            if payload_crc != payload_crc_actual:
-                raise RuntimeError('PJON error: Bad CRC (%.2x != %.2x)' % (payload_crc, payload_crc_actual))
+            if use_crc32:
+                payload_crc_actual = self._crc32(data[0:-4])
+                payload_crc        = (data[-4]<<24) | (data[-3]<<16) | (data[-2]<<8) | data[-1]
+                if payload_crc != payload_crc_actual:
+                    raise RuntimeError('PJON error: Bad CRC32 (%.8x != %.8x)' % (payload_crc, payload_crc_actual))
+            else:
+                payload_crc_actual = self._crc8(data[0:-1])
+                payload_crc        = data[packet_len-1]
+                if payload_crc != payload_crc_actual:
+                    raise RuntimeError('PJON error: Bad CRC8 (%.2x != %.2x)' % (payload_crc, payload_crc_actual))
 
             if self.log.isEnabledFor(logging.DEBUG):
                 self.log.debug('RX: [I:%.2X, H:%.2X, Len:%d, Data:[%s]]',
