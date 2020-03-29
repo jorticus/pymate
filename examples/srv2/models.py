@@ -1,6 +1,7 @@
 
 from pymate.matenet.mx import MXStatusPacket, MXLogPagePacket
 from pymate.matenet.fx import FXStatusPacket
+from pymate.matenet.flexnetdc import DCStatusPacket
 import sqlalchemy as sql
 from sqlalchemy.engine.url import URL
 from sqlalchemy import Column
@@ -178,6 +179,75 @@ class FxStatus(Base):
         # self.air_temperature = float(extra['t_air'])
 
         print "Status:", status
+
+    def to_json(self):
+        d = {key: getattr(self, key) for key in self.__dict__ if key[0] != '_'}
+        d['raw_packet'] = b64encode(d['raw_packet'])
+        return d
+
+    def __repr__(self):
+        return str(self.to_json())
+
+    @property
+    def local_timestamp(self):
+        return self.timestamp
+
+def DcStatus(Base):
+    __tablename__ = "dc_status"
+
+    id = Column(sql.Integer, primary_key=True)
+    timestamp = Column(sql.DateTime)
+    tzoffset = Column(sql.Integer)
+    raw_packet = Column(sql.LargeBinary)
+
+    shunta_power    = Column(sql.Float)
+    shuntb_power    = Column(sql.Float)
+    shuntc_power    = Column(sql.Float)
+
+    shunta_kwh_today = Column(sql.Float)
+    shuntb_kwh_today = Column(sql.Float)
+    shuntc_kwh_today = Column(sql.Float)
+
+    battery_voltage = Column(sql.Float)
+    state_of_charge = Column(sql.Float)
+    
+    in_power        = Column(sql.Float)
+    out_power       = Column(sql.Float)
+    bat_power       = Column(sql.Float)
+
+    in_kwh_today    = Column(sql.Float)
+    out_kwh_today   = Column(sql.Float)
+    bat_kwh_today   = Column(sql.Float)
+
+    flags           = Column(sql.Integer)
+
+    def __init__(self, js):
+        
+        extra = js['extra']
+        data = b64decode(js['data'])  # To bytestr
+
+        self.timestamp = dateutil.parser.parse(js['ts'])
+        self.tzoffset = int(js['tz'])
+        self.raw_packet = data
+
+        status = DCStatusPacket.from_buffer(data)
+
+        self.flags = int(status.flags)
+
+        self.shunta_power = float(status.shunta_power)
+        self.shuntb_power = float(status.shuntb_power)
+        self.shuntc_power = float(status.shuntc_power)
+        self.shunta_kwh_today = float(status.shunta_kwh_today)
+        self.shuntb_kwh_today = float(status.shuntb_kwh_today)
+        self.shuntc_kwh_today = float(status.shuntc_kwh_today)
+        self.battery_voltage = float(status.bat_voltage)
+        self.state_of_charge = float(status.state_of_charge)
+        self.in_power = float(status.in_power)
+        self.out_power = float(status.out_power)
+        self.bat_power = float(status.bat_power)
+        self.in_kwh_today = float(status.in_kwh_today)
+        self.out_kwh_today = float(status.out_kwh_today)
+        self.bat_kwh_today = float(status.bat_kwh_today)
 
     def to_json(self):
         d = {key: getattr(self, key) for key in self.__dict__ if key[0] != '_'}

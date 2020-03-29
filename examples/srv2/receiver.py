@@ -136,6 +136,35 @@ def get_current_fx_status():
         else:
             return jsonify({})
 
+@app.route('/mate/dc-status', methods=['POST'])
+def add_dc_status():
+    if not request.json:
+        abort(400)
+
+    if not all(x in request.json for x in ['type', 'data', 'ts', 'tz']):
+        raise Exception("Invalid schema - missing a required field")
+
+    if request.json['type'] != 'dc-status':
+        raise Exception("Invalid packet type")
+
+    with session_scope() as session:
+        status = DcStatus(request.json)
+        session.add(status)
+
+    return jsonify({'status': 'success'}), 201
+
+
+@app.route('/mate/dc-status', methods=['GET'])
+def get_current_dc_status():
+    with session_scope() as session:
+        status = session.query(DcStatus).order_by(sql.desc(DcStatus.timestamp)).first()
+
+        if status:
+            print "Status:", status
+            return jsonify(status)
+        else:
+            return jsonify({})
+
 # @app.route('/mate/mx-logpage/<int:day>', methods=['GET'])
 # def get_logpage(day):
 #     return jsonify(logpage_table[day])

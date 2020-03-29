@@ -7,7 +7,7 @@
 # (My particular system barely has enough flash space to fit Python!)
 #
 
-from pymate.matenet import MateNET, MateMXDevice, MateFXDevice
+from pymate.matenet import MateNET, MateMXDevice, MateFXDevice, MateDCDevice
 from time import sleep
 from datetime import datetime
 from base64 import b64encode
@@ -37,6 +37,7 @@ bus = MateNET(SERIAL_PORT)
 
 mx = None
 fx = None
+dc = None
 
 # Find and connect to an MX charge controller
 try:
@@ -58,8 +59,16 @@ try:
 except Exception as ex:
 	log.exception("Error connecting to FX")
 
+# Find and connect to a FLEXnet DC
+try:
+	port = bus.find_device(MateNET.DEVICE_DC)
+	dc = MateDCDevice(bus, port)
+	dc.scan()
+	log.info('Connected to FLEXnet DC device on port %d' % port)
+	log.info('Revision: ' + str(dc.revision))
 
-if not fx and not mx:
+
+if not all((fx,mx,dc)):
 	exit()
 
 def timestamp():
@@ -163,6 +172,25 @@ def collect_fx():
 		log.exception("EXCEPTION in collect_fx()")
 		return None
 
+def collect_dc():
+	"""
+	Collect FLEXnet DC status
+	"""
+	global last_dc_status_b64
+	try:
+		status_raw = dc.get_status_raw()
+		status_b64 = b64encode(status_raw)
+
+		if last_dc_status_b64 != status_b64:
+			last_dc_status_b64 = status_b64
+			ts, tz = timestamp()
+			return {
+				'type': 'dc-status',
+				'data': status_raw,
+				'ts': ts,
+				'tz': tz
+			}
+
 ##### COLLECTION STARTS #####
 
 log.info("Starting collection...")
@@ -171,6 +199,7 @@ now = datetime.now()
 # Calculate datetime of next status collection
 t_next_status = now + STATUS_INTERVAL
 t_next_fx_status = now + FXSTATUS_INTERVAL
+t_next_dc_status = now + DCSTATUS_INTERVAL
 
 # Calculate datetime of next logpage collection
 d = now.date()
@@ -207,6 +236,13 @@ while True:
 			t_next_fx_status = now + FXSTATUS_INTERVAL
 			if fx:
 				packet = collect_fx()
+				if packet:
+					upload_packet(packet)
+
+		if now >= t_next_dc_status:
+			t_next_dc_status = now + DCSTATUS_INTERVAL
+			if dc:
+				packet = collect_dc()
 				if packet:
 					upload_packet(packet)
 		
