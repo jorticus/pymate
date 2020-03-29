@@ -192,7 +192,7 @@ class FxStatus(Base):
     def local_timestamp(self):
         return self.timestamp
 
-def DcStatus(Base):
+class DcStatus(Base):
     __tablename__ = "dc_status"
 
     id = Column(sql.Integer, primary_key=True)
