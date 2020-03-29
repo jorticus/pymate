@@ -222,8 +222,7 @@ class DcStatus(Base):
     flags           = Column(sql.Integer)
 
     def __init__(self, js):
-        
-        extra = js['extra']
+
         data = b64decode(js['data'])  # To bytestr
 
         self.timestamp = dateutil.parser.parse(js['ts'])
