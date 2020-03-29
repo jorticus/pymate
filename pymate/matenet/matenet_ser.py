@@ -112,7 +112,7 @@ class MateNETSerial(object):
         # Checksum
         packet = data[0:-2]
         expected_chksum = (ord(data[-2]) << 8) | ord(data[-1])
-        actual_chksum = MateNET._calc_checksum(packet)
+        actual_chksum = MateNETSerial._calc_checksum(packet)
         if actual_chksum != expected_chksum:
             raise RuntimeError("Error receiving mate packet - Invalid checksum (Expected:%.4x, Actual:%.4x)"
                                % (expected_chksum, actual_chksum))
@@ -156,4 +156,4 @@ class MateNETSerial(object):
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('RX: %s', (' '.join('%.2x' % ord(c) for c in rawdata)))
 
-        buffer = MateNET._parse_packet(rawdata)
+        return MateNETSerial._parse_packet(rawdata)

@@ -1,7 +1,6 @@
 
 from datetime import timedelta, time
 
-MX_PORT = 0  # 0: No hub, 1-9: Hub port
 SERIAL_PORT = '/dev/ttyUSB0'
 STATUS_INTERVAL = timedelta(seconds=10)
 FXSTATUS_INTERVAL = timedelta(seconds=60)

@@ -66,7 +66,8 @@ try:
 	dc.scan()
 	log.info('Connected to FLEXnet DC device on port %d' % port)
 	log.info('Revision: ' + str(dc.revision))
-
+except Exception as ex:
+	log.exception("Error connecting to FLEXnet DC")
 
 if not all((fx,mx,dc)):
 	exit()
@@ -124,6 +125,9 @@ def collect_status():
 	global last_status_b64
 	try:
 		status = mx.get_status()
+		if not status:
+			raise Exception("Error reading MX status")
+		
 		status_b64 = b64encode(status.raw)
 		
 		# Only upload if the status has actually changed (to save bandwidth)
@@ -154,6 +158,9 @@ def collect_fx():
 	global last_fx_status_b64
 	try:
 		status = fx.get_status()
+		if not status:
+			raise Exception("Error reading FX status")
+
 		status_b64 = b64encode(status.raw)
 
 		if last_fx_status_b64 != status_b64:
@@ -172,6 +179,7 @@ def collect_fx():
 		log.exception("EXCEPTION in collect_fx()")
 		return None
 
+last_dc_status_b64 = None
 def collect_dc():
 	"""
 	Collect FLEXnet DC status
@@ -179,6 +187,9 @@ def collect_dc():
 	global last_dc_status_b64
 	try:
 		status_raw = dc.get_status_raw()
+		if not status_raw:
+			raise Exception("Error reading DC status")
+
 		status_b64 = b64encode(status_raw)
 
 		if last_dc_status_b64 != status_b64:
@@ -186,10 +197,13 @@ def collect_dc():
 			ts, tz = timestamp()
 			return {
 				'type': 'dc-status',
-				'data': status_raw,
+				'data': status_b64,
 				'ts': ts,
 				'tz': tz
 			}
+	except:
+		log.exception("EXCEPTION in collect_dc()")
+		return None
 
 ##### COLLECTION STARTS #####
 

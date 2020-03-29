@@ -141,7 +141,7 @@ class MateDCDevice(MateDevice):
         """
         Query the attached device to make sure we're communicating with an FLEXnet DC unit
         """
-        devid = super(MateFlexNetDC, self).scan()
+        devid = super(MateDCDevice, self).scan()
         if devid == None:
             raise RuntimeError("No response from the FLEXnet DC unit")
         if devid != MateNET.DEVICE_FLEXNETDC:
@@ -154,11 +154,9 @@ class MateDCDevice(MateDevice):
         """
 
         data = self.get_status_raw()
-        # TODO:
-        #return DCStatusPacket.from_buffer(data)
-        return None
+        return DCStatusPacket.from_buffer(data)
 
-    def get_status_raw():
+    def get_status_raw(self):
         data = ''
         for i in range(0x0A,0x0F):
             resp = self.send(MateNET.TYPE_STATUS, addr=i)
@@ -169,7 +167,7 @@ class MateDCDevice(MateDevice):
         if len(data) != 13*5:
             raise Exception('Size of status packets invalid')
 
-        return None
+        return data
 
     def get_logpage(self, day):
         """
