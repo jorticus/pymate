@@ -15,13 +15,13 @@ from . import MateDevice, MateNET
 
 class DCStatusPacket(object):
     fmt = Struct('>'+
-        'HHHHBHH'+      # Page A (7 values)
-        'HBBHHHH'+      # Page B (7 values)
-        'H'+            # Shared between page B/C
-        'HHHHHH'+       # Page C (6 values)
-        'HHBBBBBBBBB'+  # Page D (11 values)
-        'BBBHHHHH'+     # Page E (8 values)
-        'HBHHB5B'       # Page F (6 values)
+        'hhhhBhh'+      # Page A (7 values)
+        'hBBhhhh'+      # Page B (7 values)
+        'h'+            # Shared between page B/C
+        'hhhhhh'+       # Page C (6 values)
+        'hhBBBBBBBBB'+  # Page D (11 values)
+        'BBBhhhhh'+     # Page E (8 values)
+        'hBhhB5B'       # Page F (6 values)
     )
 
     def __init__(self):
