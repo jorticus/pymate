@@ -8,7 +8,7 @@ import sqlalchemy as sql
 import sqlalchemy.orm
 from contextlib import contextmanager
 from datetime import datetime
-from .models import initialize_db, MxStatus, MxLogPage, FxStatus
+from .models import initialize_db, MxStatus, MxLogPage, FxStatus, DcStatus
 
 engine = initialize_db()
 Session = sql.orm.sessionmaker(bind=engine)
@@ -36,6 +36,8 @@ class CustomJSONEncoder(JSONEncoder):
             if isinstance(o, MxLogPage):
                 return o.to_json()
             if isinstance(o, FxStatus):
+                return o.to_json()
+            if isinstance(o, DcStatus):
                 return o.to_json()
             iterable = iter(o)
         except TypeError:
@@ -129,6 +131,35 @@ def add_fx_status():
 def get_current_fx_status():
     with session_scope() as session:
         status = session.query(FxStatus).order_by(sql.desc(FxStatus.timestamp)).first()
+
+        if status:
+            print "Status:", status
+            return jsonify(status)
+        else:
+            return jsonify({})
+
+@app.route('/mate/dc-status', methods=['POST'])
+def add_dc_status():
+    if not request.json:
+        abort(400)
+
+    if not all(x in request.json for x in ['type', 'data', 'ts', 'tz']):
+        raise Exception("Invalid schema - missing a required field")
+
+    if request.json['type'] != 'dc-status':
+        raise Exception("Invalid packet type")
+
+    with session_scope() as session:
+        status = DcStatus(request.json)
+        session.add(status)
+
+    return jsonify({'status': 'success'}), 201
+
+
+@app.route('/mate/dc-status', methods=['GET'])
+def get_current_dc_status():
+    with session_scope() as session:
+        status = session.query(DcStatus).order_by(sql.desc(DcStatus.timestamp)).first()
 
         if status:
             print "Status:", status

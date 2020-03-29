@@ -28,16 +28,29 @@ class MateNET(object):
     DEVICE_HUB = 1
     DEVICE_FX = 2
     DEVICE_MX = 3
+    DEVICE_FLEXNETDC = 4
+    DEVICE_DC = 4 # Alias of FLEXNETDC
 
     TYPE_QUERY = 2
     TYPE_CONTROL = 3
     TYPE_STATUS = 4
     TYPE_LOG = 22
 
+    TYPE_READ = 2
+    TYPE_WRITE = 3
+    
+    TYPE_DEC   = 0
+    TYPE_DIS   = 0
+    TYPE_INC   = 1
+    TYPE_EN    = 1
+    TYPE_READ  = 2
+    TYPE_WRITE = 3
+
     DEVICE_TYPES = {
         DEVICE_HUB: 'Hub',
         DEVICE_MX:  'MX',
-        DEVICE_FX:  'FX'
+        DEVICE_FX:  'FX',
+        DEVICE_FLEXNETDC: 'FLEXnet DC',
     }
 
     def __init__(self, port, supports_spacemark=None):
