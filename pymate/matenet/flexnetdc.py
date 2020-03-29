@@ -158,13 +158,13 @@ class MateDCDevice(MateDevice):
 
     def get_status_raw(self):
         data = ''
-        for i in range(0x0A,0x0F):
+        for i in range(0x0A,0x0F+1):
             resp = self.send(MateNET.TYPE_STATUS, addr=i)
             if not resp:
                 return None
             data += str(resp)
 
-        if len(data) != 13*5:
+        if len(data) != 13*6:
             raise Exception('Size of status packets invalid')
 
         return data
