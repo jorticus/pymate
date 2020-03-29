@@ -37,6 +37,8 @@ class CustomJSONEncoder(JSONEncoder):
                 return o.to_json()
             if isinstance(o, FxStatus):
                 return o.to_json()
+            if isinstance(o, DcStatus):
+                return o.to_json()
             iterable = iter(o)
         except TypeError:
             pass
