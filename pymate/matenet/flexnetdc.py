@@ -120,7 +120,7 @@ class DCStatusPacket(object):
         status.shuntc_ah_today  = Value(values[40], units='Ah', resolution=0)
         status.min_soc_today    = Value(values[41], units='%', resolution=0)
         status.bat_net_ah       = Value(values[42], units='Ah', resolution=0)
-        status.bat_net_kwh      = Value(values[43] / 100.0, units='kWh', resolution2)
+        status.bat_net_kwh      = Value(values[43] / 100.0, units='kWh', resolution=2)
 
         return status
 
