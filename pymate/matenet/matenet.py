@@ -29,6 +29,7 @@ class MateNET(object):
     DEVICE_FX = 2
     DEVICE_MX = 3
     DEVICE_FLEXNETDC = 4
+    DEVICE_DC = 4 # Alias of FLEXNETDC
 
     TYPE_QUERY = 2
     TYPE_CONTROL = 3

@@ -14,42 +14,115 @@ from pymate.cstruct import Struct
 from . import MateDevice, MateNET
 
 class DCStatusPacket(object):
-    fmt = Struct('>28B')
+    fmt = Struct('>'+
+        'HHHHBHH'+      # Page A (7 values)
+        'HBBHHHH'+      # Page B (7 values)
+        'H'+            # Shared between page B/C
+        'HHHHHH'+       # Page C (6 values)
+        'HHBBBBBBBBB'+  # Page D (11 values)
+        'BBBHHHHH'+     # Page E (8 values)
+        'HBHHB5B'       # Page F (6 values)
+    )
 
     def __init__(self):
-        # TODO: Fields??
 
         # User Guide mentions:
         # Volts for one battery bank (0-80V in 0.1V resolution)
-        # For each channel (A,B,C):
-        #   Amps
-        #   kW
-        #   kWh removed from batteries
-        #   kWh returned to batteries
-        #   Ah removed from batteries
-        #   Ah returned to batteries
-        # Battery bank state-of-charge
-        # Lifetime kAh removed from batteries*
-        # Days since charge parameters last met
-        # Lowest SoC reached
-        # For each channel (A,B,C):
-        #   Min bat voltage*
-        #   Max bat voltage*
-        #   Max current charged*
-        #   Max current discharged*
-        #   Max kWh charged*
-        #   Max kWh discharged*
-        # 
         # Current range: 2000A (+/- 1000A DC), 0.1A resolution
-        #
-        # * Can be reset by user
+
+        self.bat_voltage = None
+        self.state_of_charge = None
+        
+        self.shunta_power = None
+        self.shuntb_power = None
+        self.shuntc_power = None
+        self.shunta_current = None
+        self.shuntb_current = None
+        self.shuntc_current = None
+
+        self.shunta_kwh_today = None
+        self.shuntb_kwh_today = None
+        self.shuntc_kwh_today = None
+        self.shunta_ah_today = None
+        self.shuntb_ah_today = None
+        self.shuntc_ah_today = None
+
+        self.bat_net_kwh = None
+        self.bat_net_ah = None
+        self.min_soc_today = None
+        self.in_ah_today = None
+        self.out_ah_today = None
+        self.bat_ah_today = None
+        self.in_kwh_today = None
+        self.out_kwh_today = None
+        self.bat_kwh_today = None
+
+        self.in_power = None
+        self.out_power = None
+        self.bat_power = None
+        
+        self.in_current = None
+        self.out_current = None
+        self.bat_current = None
+
+        self.days_since_full = None
+
+        self.flags = None
+
         pass
 
     @classmethod
     def from_buffer(cls, data):
         values = cls.fmt.unpack(data)
+        status = DCStatusPacket()
 
-        return DCStatusPacket() # TODO
+        # Page A
+        status.shunta_current   = Value(values[0] / 10.0, units='A', resolution=1)
+        status.shuntb_current   = Value(values[1] / 10.0, units='A', resolution=1)
+        status.shuntc_current   = Value(values[2] / 10.0, units='A', resolution=1)
+        status.bat_voltage      = Value(values[3] / 10.0, units='V', resolution=1)
+        status.state_of_charge  = Value(values[4], units='%', resolution=0)
+        status.shunta_power     = Value(values[5] / 100.0, units='kW', resolution=2)
+        status.shuntb_power     = Value(values[6] / 100.0, units='kW', resolution=2)
+
+        # Page B
+        status.shuntc_power     = Value(values[7] / 100.0, units='kW', resolution=2)
+        # unknown values[8]
+        status.flags            = values[9]
+        status.in_current       = Value(values[10] / 10.0, units='A', resolution=1)
+        status.out_current      = Value(values[11] / 10.0, units='A', resolution=1)
+        status.bat_current      = Value(values[12] / 10.0, units='A', resolution=1)
+        status.in_power         = Value(values[13] / 100.0, units='kW', resolution=2)
+        status.out_power        = Value(values[14] / 100.0, units='kW', resolution=2)  # NOTE: Split between Page B/C
+        
+        # Page C
+        status.bat_power        = Value(values[15] / 100.0, units='kW', resolution=2)
+        status.in_ah_today      = Value(values[16], units='Ah', resolution=0)
+        status.out_ah_today     = Value(values[17], units='Ah', resolution=0)
+        status.bat_ah_today     = Value(values[18], units='Ah', resolution=0)
+        status.in_kwh_today     = Value(values[19] / 100.0, units='kWh', resolution=2)
+        status.out_kwh_today    = Value(values[20] / 100.0, units='kWh', resolution=2)
+
+        # Page D
+        status.bat_kwh_today    = Value(values[21] / 100.0, units='kWh', resolution=2)
+        status.days_since_full  = Value(values[22] / 10.0, units='days', resolution=1)
+        # values[23..31] (9 values) unknown
+
+        # Page E
+        # values[32..34] (3 values) unknown
+        status.shunta_kwh_today = Value(values[35] / 100.0, units='kWh', resolution=2)
+        status.shuntb_kwh_today = Value(values[36] / 100.0, units='kWh', resolution=2)
+        status.shuntc_kwh_today = Value(values[37] / 100.0, units='kWh', resolution=2)
+        status.shunta_ah_today  = Value(values[38], units='Ah', resolution=0)
+        status.shuntb_ah_today  = Value(values[39], units='Ah', resolution=0)
+
+        # Page F
+        status.shuntc_ah_today  = Value(values[40], units='Ah', resolution=0)
+        status.min_soc_today    = Value(values[41], units='%', resolution=0)
+        status.bat_net_ah       = Value(values[42], units='Ah', resolution=0)
+        status.bat_net_kwh      = Value(values[43] / 100.0, units='kWh', resolution2)
+
+        return status
 
     def __repr__(self):
         return "<DCStatusPacket>"
@@ -79,12 +152,24 @@ class MateDCDevice(MateDevice):
         Request a status packet from the FLEXnet DC
         :return: A DCStatusPacket
         """
-        resp1 = self.send(MateNET.TYPE_STATUS, addr=1)
-        resp2 = self.send(MateNET.TYPE_STATUS, addr=2) # TODO: This also returns data!
-        if resp1 and resp2:
-            print 'RAW[1]:', (' '.join("{:02x}".format(ord(c)) for c in resp1[1:]))
-            print 'RAW[2]:', (' '.join("{:02x}".format(ord(c)) for c in resp2[1:]))
-            return DCStatusPacket.from_buffer(resp1[1:])
+
+        data = self.get_status_raw()
+        # TODO:
+        #return DCStatusPacket.from_buffer(data)
+        return None
+
+    def get_status_raw():
+        data = ''
+        for i in range(0x0A,0x0F):
+            resp = self.send(MateNET.TYPE_STATUS, addr=i)
+            if not resp:
+                return None
+            data += str(resp)
+
+        if len(data) != 13*5:
+            raise Exception('Size of status packets invalid')
+
+        return None
 
     def get_logpage(self, day):
         """
@@ -98,28 +183,3 @@ class MateDCDevice(MateDevice):
         #if resp:
         #    print 'RAW:', (' '.join("{:02x}".format(ord(c)) for c in resp[1:]))
         #    #return DCLogPagePacket.from_buffer(resp)
-
-
-# Status packets
-# 03 00 00 00 00 00 00 64 00 00 00 00 00 00 01 21 00 03 00 00 00 03 00 00 00 00 00 00
-# 01 00 00 00 00 00 00 64 00 00 00 00 00 00 01 21 00 01 00 00 00 01 00 00 00 00 00 00
-# 02 00 00 00 00 00 00 64 00 00 00 00 00 00 01 21 00 02 00 00 00 02 00 00 00 00 00 00
-# 06 00 00 00 00 00 00 64 00 00 00 00 00 00 01 21 00 06 00 00 00 06 00 00 00 00 00 00
-
-# With 24V applied to BAT -/+ terminals: 
-# f5 00 00 00 00 00 40 64 00 51 00 00 00 00 01 21 04 f5 00 00 04 f5 00 51 00 00 00 51 (but current limited to ~6V)
-# 03 00 00 00 00 00 f4 64 00 01 00 00 00 00 01 21 00 03 00 00 00 03 00 01 00 00 00 01 (actually 24V applied)
-
-# 03 00 00 00 00
-# 00 f4  : 244 = 24.4V : Current battery voltage /10
-# 64     : 100         : SoC?
-# 00 01 
-# 00 00 
-# 00 00 
-# 01 21  : 289 = 28.9V
-# 00 03 
-# 00 00 
-# 00 03 
-# 00 01 
-# 00 00 
-# 00 01
