@@ -9,7 +9,7 @@ Address |Description                        | Units / Values                    
 0004    | FW Rev C                          | CCCC                                              |               |
 00D5    | State of Charge                   | % 0064 = 100%                                     |               |
 00D8    | Aux control voltage/SOC           | ???                                               |               |
--       |                                   |                                                   |               |
+~       |                                   |                                                   |               |
 0024    | Shunt A Charged                   | ??                                                |               | METER/DC/SHUNT
 0026    | Shunt B Charged                   | ??                                                |               | METER/DC/SHUNT
 0028    | Shunt C Charged                   | ??                                                |               | METER/DC/SHUNT
@@ -22,7 +22,7 @@ Address |Description                        | Units / Values                    
 0044    | Shunt A Removed                   | ??                                                |               | METER/DC/SHUNT
 0046    | Shunt B Removed                   | ??                                                |               | METER/DC/SHUNT
 0048    | Shunt C Removed                   | ??                                                |               | METER/DC/SHUNT
--       |                                   |                                                   |               |
+~       |                                   |                                                   |               |
 0066    | Shunt A Max Charged Amps          | A  2920 = 1052.8A                                 | RESET         | METER/DC/SHUNT
 0068    | Shunt A Max Charged kWatts        | kW 1C38 = 72.240kW                                | RESET         | METER/DC/SHUNT
 006A    | Shunt B Max Charged Amps          |                                                   | RESET         | METER/DC/SHUNT
@@ -35,7 +35,7 @@ Address |Description                        | Units / Values                    
 0078    | Shunt B Max Removed kWatts        |                                                   | RESET         | METER/DC/SHUNT
 007A    | Shunt C Max Removed Amps          |                                                   | RESET         | METER/DC/SHUNT
 007C    | Shunt C Max Removed kWatts        |                                                   | RESET         | METER/DC/SHUNT
--       |                                   |                                                   |               |
+~       |                                   |                                                   |               |
 0010    | Temp comp'd batt setpoint         | V DC      011F = 28.7 vdc                         |               | STATUS/DC/BATT 
 001C    | Lifetime kAh removed              | kAh                                               | RESET = 00FF  | STATUS/DC/BATT    
 0058    | Battery min today                 | V DC                                              | RESET*        | STATUS/DC/BATT    
@@ -46,8 +46,8 @@ Address |Description                        | Units / Values                    
 0064    | Total days at 100                 | days                                              | RESET = 0000  | STATUS/DC/BATT     
 00D1    | Cycle kWhr charge efficiency      | % (0064 = 100%)                                   |               | STATUS/DC/BATT 
 00D7    | Cycle charge factor               | % (0064 = 100%)                                   |               | STATUS/DC/BATT 
-00F0    | System battery temperature        | *C (00FE = Not present)                           |               | STATUS/DC/BATT 
--       |                                   |                                                   |               |
+00F0    | System battery temperature        | degC (00FE = Not present)                         |               | STATUS/DC/BATT 
+~       |                                   |                                                   |               |
 0034    | Battery capacity                  | 0 Ah, 0190 = 400Ah, 0208 =  520Ah                 | [INC DEC ±10] | ADV/DC/…  (Setup)
 00CA    | Shunt A Mod                       | 0:Enabled<br/>1:Disabled<br/>(Default: Enabled)   | [EN DIS]      | ADV/DC/…  (Setup)
 00CB    | Shunt B Mode                      | 0:Enabled<br/>1:Disabled<br/>(Default: Disabled)  | [EN DIS]      | ADV/DC/…  (Setup)
