@@ -64,9 +64,23 @@ Out 70.7 vdc (?)79 adc
 
 # FX #
 
-TODO
+```
+11 22 33 44 55 66 77 88 99 AA BB CC DD
+ |  |  |  |  |  |  |  |  | |---|  |  |
+ |  |  |  |  |  |  |  |  |     |  |  +- warnings
+ |  |  |  |  |  |  |  |  |     |  +---- misc_byte       (bit0: 230V, bit7: Aux State)
+ |  |  |  |  |  |  |  |  |     +------- battery_voltage (int16 / 10.0)
+ |  |  |  |  |  |  |  |  +------------- ac_mode         (0: No AC, 1: AC Drop, 2: AC Use)
+ |  |  |  |  |  |  |  +---------------- errors          
+ |  |  |  |  |  |  +------------------- operational_mode
+ |  |  |  |  |  +---------------------- sell_current    (uint8*)
+ |  |  |  |  +------------------------- output_voltage  (uint8*)
+ |  |  |  +---------------------------- input_voltage   (uint8*)
+ |  |  +------------------------------- buy_current     (uint8*)
+ +------------------------------------- chg_current     (uint8*)
+```
 
-**NOTE:** When misc:0 == 1, you must multiply voltages by 2, and divide currents by 2
+**NOTE:** When misc.230V == 1, you must multiply voltages by 2, and divide currents by 2
 
 
 # FLEXnet DC #
