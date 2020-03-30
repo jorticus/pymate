@@ -114,20 +114,34 @@ class MXEmulator(MateTester):
         The MATE wants a status packet, send it a dummy status packet
         to see the effect of various values
         """
-        print "Received status packet, sending dummy data. payload:", packet
+        #print "Received status packet, sending dummy data. payload:", packet
 
-        self.send_packet(
-            '\x81'  # Ah (upper)
-            + '\x80'  # In current
-            + '\x82'  # Out current
-            + '\x00'  # kWH (signed, upper)
-            + '\x00'  # Ah (lower)
-            + '\x3F'
-            + '\x02\x01'  # Status/Error
-            + '\xF0'  # kWH (signed, lower)
-            + '\x03\xE7'  # Bat voltage
-            + '\x27\x0F'  # PV voltage
-        )
+        # self.send_packet(
+        #     self.DEVICE, # NOTE: 1st byte is the device type for STATUS packets
+        #     '\x81'  # Ah (upper)
+        #     + '\x80'  # In current
+        #     + '\x82'  # Out current
+        #     + '\x00'  # kWH (signed, upper)
+        #     + '\x00'  # Ah (lower)
+        #     + '\x3F'
+        #     + '\x02\x01'  # Status/Error
+        #     + '\xF0'  # kWH (signed, lower)
+        #     + '\x03\xE7'  # Bat voltage
+        #     + '\x27\x0F'  # PV voltage
+        # )
+        # self.send_packet(
+        #     self.DEVICE,
+        #     "\x89\x84\x89\x00\x55\x3f\x02\x00\x15\x00\xfe\x02\xa8" # From real device (13 bytes)
+        # )
+
+        #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+        #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+        #packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        #packet = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD]
+        #packet = [0x80, 0x82, 0xA0, 0xFF, 0xFF, 0xFF, 2, 0xFF, 0x05, 0x03, 0xE8, 0x00, 0x00]
+        #self.send_packet(self.DEVICE, ''.join(chr(c) for c in packet))
+
+        self.send_packet(self.DEVICE, "\x84\x83\x89\x00\x55\x3f\x02\x00\x15\x00\xfd\x02\xac")
 
     def packet_log(self, packet):
         """
