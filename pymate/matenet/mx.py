@@ -20,6 +20,18 @@ class MXStatusPacket(object):
     STATUS_ABSORB = 3
     STATUS_EQUALIZE = 4
 
+    # NOTE: MX Manual doesn't match real-world values:
+    AUX_MODE_DIVERSION_RELAY = 1 
+    AUX_MODE_REMOTE = 4
+    AUX_MODE_VENTFAN = 5
+    AUX_MODE_PVTRIGGER = 6
+    AUX_MODE_FLOAT = 0
+    AUX_MODE_ERROR_OUT = 7
+    AUX_MODE_NIGHT_LIGHT = 8
+    AUX_MODE_PWM_DIVERSION = 2
+    AUX_MODE_LOW_BATTERY = 3
+    AUX_MODE_MANUAL = 0x3F  # If Aux is not configured for Auto on MX unit.
+
     def __init__(self):
         self.amp_hours = None
         self.kilowatt_hours = None
@@ -29,6 +41,8 @@ class MXStatusPacket(object):
         self.bat_voltage = None
         self.status = None
         self.errors = None
+        self.aux_state = None
+        self.aux_mode = None
         self.raw = None
 
     @classmethod
@@ -36,13 +50,15 @@ class MXStatusPacket(object):
         values = cls.fmt.unpack(data)
         status = MXStatusPacket()
         # The following was determined by poking values at the MATE unit...
-        raw_ah = ((values[0] & 0x70) >> 4) | values[4]
+        raw_ah = ((values[0] & 0x70) >> 4) | values[4] # Ignore bit7 (if 0, MATE hides the AH reading)
+        bat_current_milli = (values[0] & 0x0F) / 10.0
         status.amp_hours = Value(raw_ah, units='Ah', resolution=0)
         status.pv_current = Value((128 + values[1]) % 256, units='A', resolution=0)
-        status.bat_current = Value((128 + values[2]) % 256, units='A', resolution=0)
-        raw_kwh = (values[3] << 8) | values[8]  # whyyyy
+        status.bat_current = Value(((128 + values[2]) % 256 + bat_current_milli), units='A', resolution=1)
+        raw_kwh = (values[3] << 8) | values[8]
         status.kilowatt_hours = Value(raw_kwh / 10.0, units='kWh', resolution=1)
-        # TODO: what does values[5] represent?
+        status.aux_state = ((values[5] & 0x40) == 0x40)  # 0: Off, 1: On
+        status.aux_mode = (values[5] & 0x3F)
         status.status = values[6]
         status.errors = values[7]
         status.bat_voltage = Value(values[9] / 10.0, units='V', resolution=1)
@@ -145,10 +161,6 @@ class MateMXDevice(MateDevice):
         :return: A MXStatusPacket
         """
         resp = self.send(MateNET.TYPE_STATUS, addr=1, param=0x00)
-        # TODO: Unsure what addr/param are supposed to be
-        # param is 00 with no hub attached, or FF with a hub attached?
-        # Status packet is returned for any value of addr/param, so probably not important.
-
         if resp:
             return MXStatusPacket.from_buffer(resp)
 
