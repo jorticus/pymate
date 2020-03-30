@@ -110,8 +110,8 @@ class FXStatusPacket(object):
         status.inverter_current  = Value(values[0] * imul, units='A', resolution=1)
         status.chg_current       = Value(values[1] * imul, units='A', resolution=1)
         status.buy_current       = Value(values[2] * imul, units='A', resolution=1)
-        status.input_voltage     = Value(values[3] * vmul, units='V', resolution=1)
-        status.output_voltage    = Value(values[4] * vmul, units='V', resolution=1)
+        status.input_voltage     = Value(values[3] * vmul, units='V', resolution=0)
+        status.output_voltage    = Value(values[4] * vmul, units='V', resolution=0)
         status.sell_current      = Value(values[5] * imul, units='A', resolution=1)
         status.operational_mode  = values[6]
         status.error_mode        = values[7]
@@ -340,28 +340,28 @@ class MateFXDevice(MateDevice):
         x = self.query(0x006D)
         if self.is_230v:
             x /= 2.0
-        return Value(x, units='A', resolution=0)
+        return Value(x, units='A', resolution=1)
 
     @property
     def charger_current(self):
         x = self.query(0x006A)
         if self.is_230v:
             x /= 2.0
-        return Value(x, units='A', resolution=0)
+        return Value(x, units='A', resolution=1)
 
     @property
     def input_current(self):
         x = self.query(0x006C)
         if self.is_230v:
             x /= 2.0
-        return Value(x, units='A', resolution=0)
+        return Value(x, units='A', resolution=1)
 
     @property
     def sell_current(self):
         x = self.query(0x006B)
         if self.is_230v:
             x /= 2.0
-        return Value(x, units='A', resolution=0)
+        return Value(x, units='A', resolution=1)
 
     @property
     def battery_actual(self):
