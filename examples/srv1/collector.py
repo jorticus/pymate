@@ -7,7 +7,7 @@
 # (My particular system barely has enough flash space to fit Python!)
 #
 
-from pymate.matenet import MateNET, MateMXDevice, MateFXDevice
+from pymate.matenet import MateNET, MateMXDevice, MateFXDevice, MateDCDevice
 from time import sleep
 from datetime import datetime
 from base64 import b64encode
@@ -37,6 +37,7 @@ bus = MateNET(SERIAL_PORT)
 
 mx = None
 fx = None
+dc = None
 
 # Find and connect to an MX charge controller
 try:
@@ -58,8 +59,17 @@ try:
 except Exception as ex:
 	log.exception("Error connecting to FX")
 
+# Find and connect to a FLEXnet DC
+try:
+	port = bus.find_device(MateNET.DEVICE_DC)
+	dc = MateDCDevice(bus, port)
+	dc.scan()
+	log.info('Connected to FLEXnet DC device on port %d' % port)
+	log.info('Revision: ' + str(dc.revision))
+except Exception as ex:
+	log.exception("Error connecting to FLEXnet DC")
 
-if not fx and not mx:
+if not all((fx,mx,dc)):
 	exit()
 
 def timestamp():
@@ -115,6 +125,9 @@ def collect_status():
 	global last_status_b64
 	try:
 		status = mx.get_status()
+		if not status:
+			raise Exception("Error reading MX status")
+		
 		status_b64 = b64encode(status.raw)
 		
 		# Only upload if the status has actually changed (to save bandwidth)
@@ -145,6 +158,9 @@ def collect_fx():
 	global last_fx_status_b64
 	try:
 		status = fx.get_status()
+		if not status:
+			raise Exception("Error reading FX status")
+
 		status_b64 = b64encode(status.raw)
 
 		if last_fx_status_b64 != status_b64:
@@ -163,6 +179,32 @@ def collect_fx():
 		log.exception("EXCEPTION in collect_fx()")
 		return None
 
+last_dc_status_b64 = None
+def collect_dc():
+	"""
+	Collect FLEXnet DC status
+	"""
+	global last_dc_status_b64
+	try:
+		status_raw = dc.get_status_raw()
+		if not status_raw:
+			raise Exception("Error reading DC status")
+
+		status_b64 = b64encode(status_raw)
+
+		if last_dc_status_b64 != status_b64:
+			last_dc_status_b64 = status_b64
+			ts, tz = timestamp()
+			return {
+				'type': 'dc-status',
+				'data': status_b64,
+				'ts': ts,
+				'tz': tz
+			}
+	except:
+		log.exception("EXCEPTION in collect_dc()")
+		return None
+
 ##### COLLECTION STARTS #####
 
 log.info("Starting collection...")
@@ -171,6 +213,7 @@ now = datetime.now()
 # Calculate datetime of next status collection
 t_next_status = now + STATUS_INTERVAL
 t_next_fx_status = now + FXSTATUS_INTERVAL
+t_next_dc_status = now + DCSTATUS_INTERVAL
 
 # Calculate datetime of next logpage collection
 d = now.date()
@@ -207,6 +250,13 @@ while True:
 			t_next_fx_status = now + FXSTATUS_INTERVAL
 			if fx:
 				packet = collect_fx()
+				if packet:
+					upload_packet(packet)
+
+		if now >= t_next_dc_status:
+			t_next_dc_status = now + DCSTATUS_INTERVAL
+			if dc:
+				packet = collect_dc()
 				if packet:
 					upload_packet(packet)
 		

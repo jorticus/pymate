@@ -7,6 +7,7 @@ from matenet_ser import MateNETSerial
 from matenet import MateNET
 from mx import MateMXDevice
 from fx import MateFXDevice
+from flexnetdc import MateDCDevice
 
 # DEPRECATED:
 from matedevice import Mate

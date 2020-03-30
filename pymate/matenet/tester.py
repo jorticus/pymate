@@ -8,11 +8,19 @@
 # This pretends to be an MX device so we can test the MATE unit without
 # needing it to be connected to the unit.
 #
+# USAGE:
+# python -m pymate.matenet.tester
+#
 __author__ = 'Jared'
 
-from . import MateNET
+from pymate.matenet import MateNET, MateNETPJON, MateDevice
 from struct import pack
+import settings
+import time
+import logging
+from binascii import hexlify
 
+log = logging.getLogger('mate')
 
 class MateTester(MateNET):
     """
@@ -20,37 +28,68 @@ class MateTester(MateNET):
     (PC connected to MATE)
     EXPERIMENTAL
     """
-    def send_packet(self, payload):
+    def send_packet(self, byte0, payload):
         """
         Send a MateNET packet
         :param payload: Packet payload (str)
         """
-        data = chr(0x03) + payload  # TODO: not sure why 0x03 here
-        self._send(data)
+        data = chr(byte0) + payload
+        log.info('TX     %.2x [%s]' % (
+            byte0,
+            ' '.join(('%.2x'%ord(c)) for c in payload)
+        ))
+        #log.info('TX: %s', hexlify(data))
+        self.port.send(data)
 
     def recv_packet(self, timeout=1.0):
         """
         Receive a MateNET packet
         :return: (port:int, type:int, payload:str) or None if no packet received
         """
-        data = self._recv(timeout)
+        data = self.port.recv(timeout)
         if not data:
             return None
 
-        port = ord(data[0])   # I think this is the port the device is connected to?
+        port = ord(data[0])   # The port the device is connected to
         ptype = ord(data[1])  # Type of the packet
         payload = [ord(c) for c in data[2:]]
+
+        PTYPES = {
+            2: 'RD',
+            3: 'WR',
+            4: 'ST',
+            22: 'LG'
+        }
+        #log.info('RX: %s', hexlify(data))
+        log.info('\nRX P%.2x %s [%s]' % (
+            port, 
+            PTYPES.get(ptype), 
+            ' '.join(('%.2x'%c) for c in payload)
+        ))
+
         return port, ptype, payload
 
     def run(self):
         while True:
-            #try:
+            try:
                 packet = self.recv_packet(timeout=5.0)
                 if packet:
-                    self.packet_received(packet)
-            #except Exception as e:
-            #    print e
-            #    continue
+                    # print("Packet: [Port:%d Type:%d Payload:%s]" % (
+                    #     packet[0],
+                    #     packet[1],
+                    #     packet[2]
+                    # ))
+
+                    if not self.packet_received(packet):
+                        # port, ptype, payload
+                        print("Unhandled packet: [Port:%d Type:%d Payload:%s]" % (
+                            packet[0],
+                            packet[1],
+                            packet[2]
+                        ))
+            except Exception as e:
+                print e
+                continue
 
     def packet_received(self, packet):
         """
@@ -59,29 +98,54 @@ class MateTester(MateNET):
         If we don't know what to do with it, return False and let any subclasses handle it
         """
         _, ptype, _ = packet
-        if ptype == MateNET.TYPE_QUERY:
-            self.packet_query(packet)
+        if ptype == MateNET.TYPE_READ:
+            self.packet_read(packet)
+            return True
+        elif ptype == MateNET.TYPE_WRITE:
+            self.packet_write(packet)
             return True
         else:
             return False
 
-    def packet_query(self, packet):
+    def packet_read(self, packet):
         """
-        The MATE wants to query a register
+        The MATE wants to read a register
         """
         port, _, payload = packet
         query = MateNET.QueryPacket.from_buffer(payload)
-        print "Query:", query
+        #print "Query:", query
+        log.info('Read[%.4x]', query.reg)
 
-        result = self.process_query(port, query)
-        self.send_packet(pack('>H', result))
+        result = self.process_read(port, query)
+        if result is not None:
+            self.send_packet(self.TYPE_READ, pack('>H', result))
 
-    def process_query(self, port, query):
+    def packet_write(self, packet):
+        """
+        The MATE wants to write a register
+        """
+        port, _, payload = packet
+        query = MateNET.QueryPacket.from_buffer(payload)
+        #print "Control:", query
+        log.info('Write[%.4x, %.4x]', query.reg, query.param)
+
+        if query.reg == 0x4004:
+            self.send_packet(self.TYPE_WRITE, pack('>H', query.param))
+            return
+
+        result = self.process_write(port, query)
+        self.send_packet(self.TYPE_WRITE, pack('>H', result))
+
+    def process_read(self, port, query):
         """
         Query a register, and return the value to the MATE
         (Override this in your subclass)
         """
         print "Unknown query! (0x%.4x, port:%d)" % (query.reg, port)
+        return 0
+
+    def process_write(self, port, query):
+        print "Unknown control! (0x%.4x, port:%d)" % (query.reg, port)
         return 0
 
 
@@ -95,19 +159,18 @@ class MXEmulator(MateTester):
     def packet_received(self, packet):
         # Let the superclass handle packets first
         handled = super(MXEmulator, self).packet_received(packet)
+        if handled:
+            return True
 
         # Unknown packet, try handle it ourselves:
-        if not handled:
-            _, ptype, _ = packet
-            if ptype == MateNET.TYPE_STATUS:
-                self.packet_status(packet)
-                return True
-            elif ptype == MateNET.TYPE_LOG:
-                self.packet_log(packet)
-                return True
-            else:
-                print "Received:", packet
-                return False
+        _, ptype, _ = packet
+        if ptype == MateNET.TYPE_STATUS:
+            self.packet_status(packet)
+            return True
+        elif ptype == MateNET.TYPE_LOG:
+            self.packet_log(packet)
+            return True
+        return False
 
     def packet_status(self, packet):
         """
@@ -134,14 +197,12 @@ class MXEmulator(MateTester):
         #     "\x89\x84\x89\x00\x55\x3f\x02\x00\x15\x00\xfe\x02\xa8" # From real device (13 bytes)
         # )
 
-        #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+        packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
         #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
         #packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         #packet = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD]
         #packet = [0x80, 0x82, 0xA0, 0xFF, 0xFF, 0xFF, 2, 0xFF, 0x05, 0x03, 0xE8, 0x00, 0x00]
-        #self.send_packet(self.DEVICE, ''.join(chr(c) for c in packet))
-
-        self.send_packet(self.DEVICE, "\x84\x83\x89\x00\x55\x3f\x02\x00\x15\x00\xfd\x02\xac")
+        self.send_packet(self.DEVICE, ''.join(chr(c) for c in packet))
 
     def packet_log(self, packet):
         """
@@ -151,11 +212,11 @@ class MXEmulator(MateTester):
         query = MateNET.QueryPacket.from_buffer(payload)
         day = query.param
         print "Get log entry (day -%d)" % day
-        self.send_packet('\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10' + chr(day))
-        #self.send_packet('\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF' + chr(day))
-        #self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x48' + chr(day))
+        self.send_packet(self.TYPE_LOG, '\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10' + chr(day))
+        #self.send_packet(self.TYPE_LOG, '\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF' + chr(day))
+        #self.send_packet(self.TYPE_LOG, '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x48' + chr(day))
 
-    def process_query(self, port, query):
+    def process_read(self, port, query):
         """
         The MATE wants to get the value of a register
         """
@@ -237,7 +298,7 @@ class MXEmulator(MateTester):
             return 188
 
         else:
-            return super(MXEmulator, self).process_query(port, query)
+            return super(MXEmulator, self).process_read(port, query)
 
 
 class FXEmulator(MateTester):
@@ -250,31 +311,32 @@ class FXEmulator(MateTester):
     def packet_received(self, packet):
         # Let the superclass handle packets first
         handled = super(FXEmulator, self).packet_received(packet)
+        if handled:
+            return True
 
         # Unknown packet, try handle it ourselves:
-        if not handled:
-            _, ptype, _ = packet
-            if ptype == MateNET.TYPE_STATUS:
-                self.packet_status(packet)
-                return True
-            else:
-                print "Received:", packet
-                return False
+        _, ptype, _ = packet
+        if ptype == MateNET.TYPE_STATUS:
+            self.packet_status(packet)
+            return True
+        return False
 
     def packet_status(self, packet):
         """
         The MATE wants a status packet, send it a dummy status packet
         to see the effect of various values
         """
-        print "Received status packet, sending dummy data. payload:", packet
+        #print "Received status packet, sending dummy data. payload:", packet
 
         self.send_packet(
-            '\x02\x28\x0A'
-            + '\x02\x01'
-            + '\x0A\x00\x64\x00\x00\xDC\x14\x0A'
+            self.DEVICE,
+            "\x00\x00\x00\x03\x73\x00\x04\x00\x02\x01\x00\x09\x00" # From real device
+            # '\x02\x28\x0A'
+            # + '\x02\x01'
+            # + '\x0A\x00\x64\x00\x00\xDC\x14\x0A'
         )
 
-    def process_query(self, port, query):
+    def process_read(self, port, query):
         """
         The MATE wants to get the value of a register
         """
@@ -383,10 +445,12 @@ class FXEmulator(MateTester):
         ##### STATUS/FX #####
         # Errors
         elif query.reg == 0x0039:
-            return 0xFF
+            #return 0xFF # All errors active
+            return 0x00
         # Warnings
         elif query.reg == 0x0059:
-            return 0xFF
+            #return 0xFF
+            return 0x00 # All warnings active
 
         # Disconn
         elif query.reg == 0x0084:
@@ -396,7 +460,7 @@ class FXEmulator(MateTester):
             return 0xFF  # Stop sell reason
 
         else:
-            return super(FXEmulator, self).process_query(port, query)
+            return super(FXEmulator, self).process_read(port, query)
 
 
 class FlexNETDCEmulator(MateTester):
@@ -404,47 +468,144 @@ class FlexNETDCEmulator(MateTester):
     Emulates a FlexNET DC monitor, outputting dummy data
     so we can see how the MATE unit responds
     """
-    DEVICE = MateNET.DEVICE_FX
+    DEVICE = MateNET.DEVICE_FLEXNETDC
 
     def packet_received(self, packet):
         # Let the superclass handle packets first
         handled = super(FlexNETDCEmulator, self).packet_received(packet)
-
+        if handled:
+            return True
+        
         # Unknown packet, try handle it ourselves:
-        if not handled:
-            _, ptype, _ = packet
-            if ptype == MateNET.TYPE_STATUS:
-                self.packet_status(packet)
-                return True
-            else:
-                print "Received:", packet
-                return False
+        port, ptype, payload = packet
+        if ptype == MateNET.TYPE_STATUS:
+            query = MateNET.QueryPacket.from_buffer(payload)
+            self.packet_status(port, query)
+            return True
+            pass
+        return False
 
-    def packet_status(self, packet):
+    def packet_status(self, port, query):
         """
         The MATE wants a status packet, send it a dummy status packet
         to see the effect of various values
         """
-        print "Received status packet, sending dummy data. payload:", packet
+        #print "Received DC status packet (0x%x)" % query.reg
+        packet = None
+        if query.reg == 0x0A:
+            #packet = [0xff, 0xd7, 0x00, 0x12, 0x00, 0x00, 0x01, 0x02, 0x63, 0xff, 0xf5, 0x00, 0x05] # From real device
+            #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+            packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            #packet = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD]
+            #packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x7F, 0x63, 0x00, 0x00, 0x00, 0x00]
 
-        self.send_packet('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+            # - "SOC Critically Low" message is driven by SOC%
+            # - DC NOW XX % (0x7F = 127%)
+            # - DC NOW Voltage (0xFF7F = -12.7V)
+            # - Shunt A/B Amps/kW
+            # - Shunt C Amps
 
-    def process_query(self, port, query):
+        elif query.reg == 0x0B:
+            #packet = [0x00, 0x00, 0x01, 0x21, 0x00, 0x00, 0x00, 0x28, 0xff, 0xd8, 0x00, 0x00, 0x00] # From real device
+            #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+            packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            #packet = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD]
+            #packet = [0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+            # - DC NOW In/Out/Bat Current (07F: 3263.9A)
+            # - Fuel Guage
+            # - DC BAT Current
+            # - DC NOW In/Out kW -- In:26.390kW Out:27.670kW  
+            #   Part of 'Out kW' is stored in another frame. When this is all 00, it reads 2.550kW
+            # - 'Full charge settings met' flag
+            # - Shunt C kW
+
+        elif query.reg == 0x0C:
+            #packet = [0x0a, 0xff, 0xf6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01] # From real device
+            #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+            packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            #packet = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD]
+            # - DC TODAY In/Out/Bat Current/kW (7F: 26.390kW)
+            # - DC NOW Bat kW (26.390kW)
+
+        elif query.reg == 0x0D:
+            #packet = [0xff, 0xff, 0x00, 0x01, 0xff, 0xff, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00] # From real device
+            #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+            packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+            #packet = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD]
+            # - Days since full charge (63.)
+            # - DC TODAY BAT KW (26.39kW)
+
+        elif query.reg == 0x0E:
+            #packet = [0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00] # From real device
+            #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+            packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            #packet = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD]
+            # - Shunt A/B AmpHours/kWH
+            # - Shunt C kWH
+
+        elif query.reg == 0x0F:
+            #packet = [0x00, 0x00, 0x62, 0x00, 0x00, 0xff, 0xff, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00] # From real device
+            #packet = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            #packet = [0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F]
+            packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            #packet =  [0x00, 0x00, 50,   0x11, 0x22, 0x33, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            #packet = [0x55, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            # - DC TODAY MINSOC % (50%)
+            # - DC BAT NET AH     (0x1122 : 4386AH)
+            # - DC BAT NET KWH    (0x3344 : (6)31.24kWH (top digit truncated))
+            # - ShuntC AH
+
+        if packet:
+            self.send_packet(self.DEVICE, ''.join(chr(c) for c in packet))
+
+    def process_write(self, port, query):
+        if query.reg == 0x4004:
+            # This is sent periodically by the MATE to a DC, and increases with a specific pattern.
+            # Unsure what it does, but if you don't reply, the MATE shows a COMMS error
+            return query.param
+
+        # RSOC reset?
+        elif query.reg == 0x00D5: 
+            return query.param
+
+        # Don't use inherited registers,
+        # but return the written value for any unhandled registers.
+        return query.param
+
+    def process_read(self, port, query):
         """
         The MATE wants to get the value of a register
         """
         # Get device type
         if query.reg == 0x0000:
             print "SCAN received, pretending to be a FlexNET DC"
-            return 4 #self.DEVICE
+            return self.DEVICE
 
         # Revision (2.3.4)
+        elif query.reg == 0x0001:
+            return 0  # Not sure what this is
         elif query.reg == 0x0002:
             return 11
         elif query.reg == 0x0003:
             return 22
         elif query.reg == 0x0004:
             return 33
+
+
+        # State of charge
+        elif query.reg == 0x00D5:
+            return 33 # percent
+        elif query.reg == 0x00D8:
+            return 100
+
+        # Don't use inherited registers
         return 0
 
 
@@ -452,12 +613,14 @@ class HubEmulator(MateTester):
     """
     Emulate a Hub, to see how it works
     """
-    def __init__(self, comport):
-        super(HubEmulator, self).__init__(comport)
+    def __init__(self, port):
+        super(HubEmulator, self).__init__(port)
         # Devices attached to this virtual hub:
         self.ports = {
-            1: MXEmulator(self.ser),
-            2: MXEmulator(self.ser),
+            1: MXEmulator(self.port),
+            #2: MXEmulator(self.port),
+            2: FXEmulator(self.port),
+            3: FlexNETDCEmulator(self.port)  # Requires an MX & FX
         }
 
     def get_device_at_port(self, port):
@@ -468,54 +631,42 @@ class HubEmulator(MateTester):
 
     def packet_received(self, packet):
         port, ptype, _ = packet
-        if ptype == MateNET.TYPE_QUERY or port == 0:
-            # Let the superclass handle packets first
-            handled = super(HubEmulator, self).packet_received(packet)
+        if port == 0:
+            return super(HubEmulator, self).packet_received(packet)
 
-            # Unknown packet, try handle it ourselves:
-            if not handled:
-                print "Received:", packet
         else:
-            # Redirect to the correct device class
+            # Forward packet to the respective device
             device = self.get_device_at_port(port)
             if device:
-                #print "Forwarding packet to", device
-                # TODO: Unsure if port needs to be set to 0
                 return device.packet_received(packet)
-            else:
-                print "Warning: No device attached to port", port
-                return False
 
-    def process_query(self, port, query):
+    def process_read(self, port, query):
         # SCAN: What device is attached to the specified port?
         if query.reg == 0x0000:
             # Pretend to be a hub attached to port 0
-            if port == 0:
-                print "SCAN received, pretending to be a hub"
-                return MateNET.DEVICE_HUB
-            # Dynamically look up what's attached to the other ports
-            else:
-                print "SCAN hub port %d" % port
-                device = self.get_device_at_port(port)
-                if device:
-                    print device, "attached to port", port
-                    return device.DEVICE
-                return 0  # No device attached to this port
-        else:
-            if port != 0:  # Need to forward queries for other ports to their respective devices
-                device = self.get_device_at_port(port)
-                if device:
-                    # TODO: Unsure if port needs to be set to 0
-                    return device.process_query(port, query)
-        return 0
+            print "SCAN received, pretending to be a hub"
+            return MateNET.DEVICE_HUB
+
+        return None
 
 
 if __name__ == "__main__":
-    comport = 'COM8'
-    #unit = HubEmulator(comport)
-    unit = MXEmulator(comport)
-    #unit = FXEmulator(comport)
-    #unit = FlexNETDCEmulator(comport)
+    
+    log.setLevel(logging.DEBUG)
+    #log.setLevel(logging.INFO)
+    log.addHandler(logging.StreamHandler())
+
+    if settings.SERIAL_PROTO == 'PJON':
+        # NOTE: Use high baud rate to ensure we respond quickly enough for the MATE.
+        # If you don't respond in time, MATE will get the hub port mappings wrong.
+        port = MateNETPJON(settings.SERIAL_PORT, 1000000, target=0x0B)
+    else:
+        port = settings.SERIAL_PORT
+
+    unit = HubEmulator(port)
+    #unit = MXEmulator(port)
+    #unit = FXEmulator(port)
+    #unit = FlexNETDCEmulator(port)
 
     print "Running"
     unit.run()

@@ -6,6 +6,13 @@
 
 from pymate.matenet import MateNET, MateNETPJON, MateDevice
 import settings
+import serial
+import logging
+import time
+
+#log = logging.getLogger('mate')
+#log.setLevel(logging.DEBUG)
+#log.addHandler(logging.StreamHandler())
 
 print("MATE Bus Scan")
 
@@ -17,6 +24,9 @@ if settings.SERIAL_PROTO == 'PJON':
 
     # PJON is more reliable, so we don't need to retry packets
     bus.RETRY_PACKET = 0
+
+    # Time for the Arduino to boot (connecting serial may reset it)
+    time.sleep(1.0)
 
 else:
     bus = MateNET(settings.SERIAL_PORT)
