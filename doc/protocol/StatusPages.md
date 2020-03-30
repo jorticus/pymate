@@ -37,7 +37,7 @@ The MATE asks for a status page once per second, except for the FLEXnet DC statu
 ||  |  |  |  |  |  |  |  +------------- kwh             (int16 / 10.0, lower byte)
 ||  |  |  |  |  |  |  +---------------- error           (bit field)
 ||  |  |  |  |  |  +------------------- status          (01..04)
-||  |  |  |  |  +---------------------- unknown (0x3F)  might be AUX mode/state?
+||  |  |  |  |  +---------------------- aux mode / state
 ||  |  |  |  +------------------------- AH lower byte   (int12)
 ||  |  |  +---------------------------- kwh             (int16 / 10.0, upper byte)
 ||  |  +------------------------------- out_amps_dc     (int8, 0x80=0.0)
@@ -52,6 +52,8 @@ Also, the LCD cannot display all possible values and will truncate the top digit
 
 If bit7 in byte[0] is 0, then AH is not displayed in CC TOTALS screen.
 Presumably this is because the LCD can't display negative AmpHours, but the value is signed? Either that or there is a flag jammed into the upper nibble.
+
+Aux Mode is bits 0..5 (0x3F), Aux State is bit 6 (0x40)
 
 Sample values:
 ```
