@@ -10,13 +10,18 @@ if sys.version_info[0] != 2:
 
 setup(
     name='pymate',
-    version='v2.1',
+    version='v2.2',
     description='Outback MATE python interface',
     author='Jared',
     author_email='jared@jared.geek.nz',
-    url='https://jared.geek.nz/pymate',
+    url='https://github.com/jorticus/pymate',
     keywords=['outback', 'mate', 'pymate'],
-    classifiers=[],
+    classifiers=[
+        "Programming Language :: Python :: 2",
+        "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+        "Operating System :: OS Independent",
+    ],
     packages=['pymate', 'pymate.matenet'],
-    install_requires=['pyserial']
+    install_requires=['pyserial'],
+    python_requires='>=2.7,!=3.*',
 )
