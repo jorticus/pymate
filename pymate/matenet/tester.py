@@ -18,6 +18,7 @@ from struct import pack
 import settings
 import time
 import logging
+import datetime
 from binascii import hexlify
 from pymate.packet_capture.wireshark_tap import WiresharkTap
 
@@ -144,8 +145,8 @@ class MateTester(MateNET):
         log.info('Write[%.4x, %.4x]', query.reg, query.param)
 
         if query.reg == 0x4004:
-            self.send_packet(self.TYPE_WRITE, pack('>H', query.param))
-            return
+            self.handle_time_update(query)
+            return True
 
         result = self.process_write(port, query)
         self.send_packet(self.TYPE_WRITE, pack('>H', result))
@@ -161,6 +162,17 @@ class MateTester(MateNET):
     def process_write(self, port, query):
         print "Unknown control! (0x%.4x, port:%d)" % (query.reg, port)
         return 0
+
+    def handle_time_update(self, query):
+        self.send_packet(self.TYPE_WRITE, pack('>H', query.param))
+
+        t = datetime.time(
+            hour = ((query.param >> 11) & 0x1F),
+            minute = ((query.param >> 5) & 0x3F),
+            second = ((query.param & 0x1F) << 1)
+        )
+
+        print ("Time: %s" % t)
 
 
 class MXEmulator(MateTester):
@@ -668,8 +680,8 @@ if __name__ == "__main__":
 
     TAP_WIRESHARK = False
     
-    log.setLevel(logging.DEBUG)
-    #log.setLevel(logging.INFO)
+    #log.setLevel(logging.DEBUG)
+    log.setLevel(logging.INFO)
     log.addHandler(logging.StreamHandler())
 
     if settings.SERIAL_PROTO == 'PJON':
@@ -682,7 +694,7 @@ if __name__ == "__main__":
     tap = None
     if TAP_WIRESHARK:
         tap =  WiresharkTap()
-        tap.launch_wireshark(sideload_dissector=True)
+        #tap.launch_wireshark(sideload_dissector=True)
         tap.open()
         time.sleep(2.0)
     
@@ -697,6 +709,3 @@ if __name__ == "__main__":
 
     finally:
         if tap: tap.close()
-
-# TODO: we intermittently receive the following packet:
-#Received: (0, 3, [64, 4, 146, 233]) 40 04 92 E9

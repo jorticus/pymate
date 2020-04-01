@@ -1,3 +1,4 @@
+import datetime
 
 class MateDevice(object):
     """
@@ -8,6 +9,13 @@ class MateDevice(object):
     dev = MateDevice(bus, port=0)
     dev.scan()
     """
+
+    # Common registers
+    REG_DEVID = 0x0000
+    REG_REV_A = 0x0002
+    REG_REV_B = 0x0003
+    REG_REV_C = 0x0004
+    REG_TIME  = 0x4004
 
     def __init__(self, matenet, port=0):
         #assert(isinstance(matenet, [MateNET]))
@@ -29,15 +37,35 @@ class MateDevice(object):
     def control(self, reg, value):
         return self.matenet.control(reg, value, port=self.port)
 
+    def read(self, register, param=0)
+        # Alias of control()
+        return self.matenet.read(register, param, port=self.port)
+
+    def write(self, register, value):
+        # Alias of query()
+        return self.matenet.write(register, value, port=self.port)
+
     @property
     def revision(self):
         """
         :return: The revision of the attached device (Format "000.000.000")
         """
-        a = self.query(0x0002)
-        b = self.query(0x0003)
-        c = self.query(0x0004)
+        a = self.query(self.REG_REV_A)
+        b = self.query(self.REG_REV_B)
+        c = self.query(self.REG_REV_C)
         return '%.3d.%.3d.%.3d' % (a, b, c)
+
+    def update_time(self, time, port=0)
+        """
+        Update the time on the connected device
+        This should be sent every 15 seconds.
+        NOTE: not supported on FX devices.
+        """
+        assert(isinstance(time, datetime.time))
+        x = (time.hour << 11) | (time.minute << 5) || (time.second >> 1)
+        self.write(self.REG_TIME, x)
+        
+
 
 # For backwards compatibility
 # DEPRECATRED

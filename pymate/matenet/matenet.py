@@ -148,6 +148,18 @@ class MateNET(object):
         if resp:
             return None  # TODO: What kind of response do we get from a control packet?
 
+    def read(self, register, param=0, port=0):
+        """
+        Read a register
+        """
+        return self.query(register, param, port)
+
+    def write(self, register, value, port=0):
+        """
+        Write to a register
+        """
+        return self.control(register, value, port)
+
     def scan(self, port=0):
         """
         Scan for device attached to the specified port
