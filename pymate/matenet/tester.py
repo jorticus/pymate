@@ -144,9 +144,10 @@ class MateTester(MateNET):
         #print "Control:", query
         log.info('Write[%.4x, %.4x]', query.reg, query.param)
 
-        if query.reg == 0x4004:
-            self.handle_time_update(query)
-            return True
+        if query.reg == MateDevice.REG_TIME:
+            return self.handle_time_update(query)
+        if query.reg == MateDevice.REG_DATE:
+            return self.handle_date_update(query)
 
         result = self.process_write(port, query)
         self.send_packet(self.TYPE_WRITE, pack('>H', result))
@@ -166,13 +167,24 @@ class MateTester(MateNET):
     def handle_time_update(self, query):
         self.send_packet(self.TYPE_WRITE, pack('>H', query.param))
 
-        t = datetime.time(
+        time = datetime.time(
             hour = ((query.param >> 11) & 0x1F),
             minute = ((query.param >> 5) & 0x3F),
             second = ((query.param & 0x1F) << 1)
         )
+        print ("Time: %s" % time)
+        return True
 
-        print ("Time: %s" % t)
+    def handle_date_update(self, query):
+        self.send_packet(self.TYPE_WRITE, pack('>H', query.param))
+
+        date = datetime.date(
+            year  = ((query.param >> 9) & 0x7F) + 2000,
+            month = ((query.param >> 5) & 0x0F),
+            day   = (query.param & 0x1F)
+        )
+        print ("Date: %s" % date)
+        return True
 
 
 class MXEmulator(MateTester):
@@ -678,7 +690,7 @@ class HubEmulator(MateTester):
 
 if __name__ == "__main__":
 
-    TAP_WIRESHARK = False
+    TAP_WIRESHARK = True
     
     #log.setLevel(logging.DEBUG)
     log.setLevel(logging.INFO)
@@ -694,7 +706,7 @@ if __name__ == "__main__":
     tap = None
     if TAP_WIRESHARK:
         tap =  WiresharkTap()
-        #tap.launch_wireshark(sideload_dissector=True)
+        tap.launch_wireshark(sideload_dissector=True)
         tap.open()
         time.sleep(2.0)
     

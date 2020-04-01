@@ -16,6 +16,7 @@ class MateDevice(object):
     REG_REV_B = 0x0003
     REG_REV_C = 0x0004
     REG_TIME  = 0x4004
+    REG_DATE  = 0x4005
 
     def __init__(self, matenet, port=0):
         #assert(isinstance(matenet, [MateNET]))
@@ -37,7 +38,7 @@ class MateDevice(object):
     def control(self, reg, value):
         return self.matenet.control(reg, value, port=self.port)
 
-    def read(self, register, param=0)
+    def read(self, register, param=0):
         # Alias of control()
         return self.matenet.read(register, param, port=self.port)
 
@@ -55,15 +56,25 @@ class MateDevice(object):
         c = self.query(self.REG_REV_C)
         return '%.3d.%.3d.%.3d' % (a, b, c)
 
-    def update_time(self, time, port=0)
+    def update_time(self, dt):
         """
         Update the time on the connected device
         This should be sent every 15 seconds.
         NOTE: not supported on FX devices.
         """
-        assert(isinstance(time, datetime.time))
-        x = (time.hour << 11) | (time.minute << 5) || (time.second >> 1)
-        self.write(self.REG_TIME, x)
+        assert(isinstance(time, datetime.datetime))
+        x1 = (
+            ((dt.hour & 0x1F) << 11) | 
+            ((dt.minute & 0x3F) << 5) | 
+            ((dt.second & 0x1F) >> 1)
+        )
+        x2 = (
+            (((dt.year-2000) & 0x7F) << 9) | 
+            ((dt.month & 0x0F) << 5) | 
+            (dt.day & 0x1F)
+        )
+        self.write(self.REG_TIME, x1)
+        self.write(self.REG_DATE, x2)
         
 
 
