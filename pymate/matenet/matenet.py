@@ -53,7 +53,7 @@ class MateNET(object):
         DEVICE_FLEXNETDC: 'FLEXnet DC',
     }
 
-    def __init__(self, port, supports_spacemark=None):
+    def __init__(self, port, supports_spacemark=None, tap=None):
         if isinstance(port, (MateNETSerial, MateNETPJON)):
             self.port = port
         else:
@@ -63,6 +63,8 @@ class MateNET(object):
 
         # Retry command this many times if we read back an invalid packet (eg. bad CRC)
         self.RETRY_PACKET = 2
+
+        self.tap = tap
 
     def send(self, ptype, addr, param=0, port=0):
         """
@@ -79,32 +81,46 @@ class MateNET(object):
         data = None
         for i in range(self.RETRY_PACKET+1):
             try:
-                self.port.send(packet.to_buffer())
+                txbuf = packet.to_buffer()
+                self.port.send(txbuf)
 
-                data = self.port.recv()
-                if not data:
+                rxbuf = self.port.recv()
+                if not rxbuf:
                     self.log.debug('RETRY')
                     continue  # No response - try again
                     #return None
+
+                if self.tap:
+                    # Send the packet to the wireshark tap pipe, if present
+                    
+                    self.tap.capture(
+                        txbuf+'\xFF\xFF', # Dummy checksum
+                        rxbuf+'\xFF\xFF'  # Dummy checksum
+                    )
                     
                 break # Received successfully
             except:
                 if i < self.RETRY_PACKET:
                     self.log.debug('RETRY')
                     continue  # Transmission error - try again
+
+                if self.tap:
+                    # No response, just capture the TX packet for wireshark
+                    self.tap.capture_tx(txbuf+'\xFF\xFF')
+
                 raise         # Retry limit reached
 
-        if not data:
+        if not rxbuf:
             return None
 
         # Validation
-        if len(data) < 2:
+        if len(rxbuf) < 2:
             raise RuntimeError("Error receiving packet - not enough data received")
 
-        if ord(data[0]) & 0x80 == 0x80:
-            raise RuntimeError("Invalid command 0x%.2x" % (ord(data[0]) & 0x7F))
+        if ord(rxbuf[0]) & 0x80 == 0x80:
+            raise RuntimeError("Invalid command 0x%.2x" % (ord(rxbuf[0]) & 0x7F))
             
-        return data[1:]
+        return rxbuf[1:]
 
 ### Higher level protocol functions ###
 

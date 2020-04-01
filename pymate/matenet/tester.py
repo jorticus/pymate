@@ -19,6 +19,7 @@ import settings
 import time
 import logging
 from binascii import hexlify
+from pymate.packet_capture.wireshark_tap import WiresharkTap
 
 log = logging.getLogger('mate')
 
@@ -38,8 +39,15 @@ class MateTester(MateNET):
             byte0,
             ' '.join(('%.2x'%ord(c)) for c in payload)
         ))
+
         #log.info('TX: %s', hexlify(data))
         self.port.send(data)
+
+        if self.tap:
+            # Send the packet to the wireshark tap pipe
+            # RX in this case is relative to the MATE
+            data += '\xFF\xFF'  # Dummy checksum
+            self.tap.capture_rx(data)
 
     def recv_packet(self, timeout=1.0):
         """
@@ -66,6 +74,12 @@ class MateTester(MateNET):
             PTYPES.get(ptype), 
             ' '.join(('%.2x'%c) for c in payload)
         ))
+
+        if self.tap:
+            # Send the packet to the wireshark tap pipe
+            # TX in this case is relative to the MATE
+            data += '\xFF\xFF'  # Dummy checksum
+            self.tap.capture_tx(data)
 
         return port, ptype, payload
 
@@ -613,14 +627,14 @@ class HubEmulator(MateTester):
     """
     Emulate a Hub, to see how it works
     """
-    def __init__(self, port):
-        super(HubEmulator, self).__init__(port)
+    def __init__(self, port, *args, **kwargs):
+        super(HubEmulator, self).__init__(port, *args, **kwargs)
         # Devices attached to this virtual hub:
         self.ports = {
-            1: MXEmulator(self.port),
-            #2: MXEmulator(self.port),
-            2: FXEmulator(self.port),
-            3: FlexNETDCEmulator(self.port)  # Requires an MX & FX
+            1: MXEmulator(self.port, *args, **kwargs),
+            #2: MXEmulator(self.port, *args, **kwargs),
+            2: FXEmulator(self.port, *args, **kwargs),
+            3: FlexNETDCEmulator(self.port, *args, **kwargs)  # Requires an MX & FX
         }
 
     def get_device_at_port(self, port):
@@ -651,6 +665,8 @@ class HubEmulator(MateTester):
 
 
 if __name__ == "__main__":
+
+    TAP_WIRESHARK = False
     
     log.setLevel(logging.DEBUG)
     #log.setLevel(logging.INFO)
@@ -663,14 +679,24 @@ if __name__ == "__main__":
     else:
         port = settings.SERIAL_PORT
 
-    unit = HubEmulator(port)
+    tap = None
+    if TAP_WIRESHARK:
+        tap =  WiresharkTap()
+        tap.launch_wireshark(sideload_dissector=True)
+        tap.open()
+        time.sleep(2.0)
+    
+    unit = HubEmulator(port, tap=tap)
     #unit = MXEmulator(port)
     #unit = FXEmulator(port)
     #unit = FlexNETDCEmulator(port)
 
-    print "Running"
-    unit.run()
+    try:
+        print "Running"
+        unit.run()
 
+    finally:
+        if tap: tap.close()
 
 # TODO: we intermittently receive the following packet:
 #Received: (0, 3, [64, 4, 146, 233]) 40 04 92 E9
