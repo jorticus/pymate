@@ -2,18 +2,18 @@
 
 Address |Description                | Units / Value     | R/W | MATE Screen 
 --------|---------------------------|-------------------|-----|-------------
-0000    | Device type               | 0002 = MX         |
-0001    | ??                        | 0000              |
-0002    | FW Rev A (AAA.BBB.CCCC)   | AAA               |
-0003    | FW Rev B                  | BBB               |
-0004    | FW Rev C                  | CCCC              |
-0008    | Battery Voltage           |                   |     |
-000F    | Max Battery               | V*10              |     |
-0010    | VOC                       | *10               |     |
-0012    | Max VOC                   | *10               |     |
-0013    | Total kWh DC              | kWh               |     |
-0014    | Total kAh kAh             |                   |     |
-0015    | Max Wattage               | W                 |     |
+0000    | Device type               | 0002 = MX         |     |
+0001    | ??                        | 0000              |     |
+0002    | FW Rev A (AAA.BBB.CCCC)   | AAA               |     | STATUS/CC/METER
+0003    | FW Rev B                  | BBB               |     | STATUS/CC/METER
+0004    | FW Rev C                  | CCCC              |     | STATUS/CC/METER
+0008    | Battery Voltage           | V/10              |     | STATUS/CC/METER
+000F    | Max Battery               | V/10              |     | STATUS/CC/STAT
+0010    | VOC                       | V/10              |     | STATUS/CC/STAT
+0012    | Max VOC                   | V/10              |     | STATUS/CC/STAT
+0013    | Total kWh DC              | kWh               |     | STATUS/CC/STAT
+0014    | Total kAh                 | kAH               |     | STATUS/CC/STAT
+0015    | Max Wattage               | W                 |     | STATUS/CC/STAT
 0017    | Output current limit      | A (tenths)        | R/W | ADV/CC/CHGR
 0018    | Float voltage             | V                 | R/W | ADV/CC/CHGR
 0019    | Absorb voltage            | V                 | R/W | ADV/CC/CHGR
@@ -38,15 +38,17 @@ Address |Description                | Units / Value     | R/W | MATE Screen
 0025    | RTS comp upper limit      | V tenths          | R/W | ADV/CC/ADVANCED
 0024    | RTS comp lower limit      | V tenths          | R/W | ADV/CC/ADVANCED
 00DC    | Auto restart mode         | ?                 | R/W | ADV/CC/ADVANCED
-00C8    | RESET TO FACTORY DEFAULTS | -                 | W   | ADV/CC/ADVANCED
-0170    | SetPt Absorb              | V*10              |     |
-0172    | SetPt Float               | V*10              |     |
-016A    | Charger Watts             | W                 |     |
-01C6    | Panel Voltage             | V                 |     |
-01C7    | Charger Amps DC           | A (0:+128)        |     |
-01C8    | Status                    |                   |     |
-01C9    | Aux Relay Mode            |                   |     |
-01EA    | Charger kWh               | kWh*10            |     |
+019B    | RESET TO FACTORY DEFAULTS | ???               | R   | ADV/CC/ADVANCED
+00C8    | RESET TO FACTORY DEFAULTS | 00FF              | W   | ADV/CC/ADVANCED
+0170    | SetPt Absorb              | V/10              |     | STATUS/CC/SETPT
+0172    | SetPt Float               | V/10              |     | STATUS/CC/SETPT
+016A    | Charger Watts             | W                 |     | STATUS/CC/METER
+01EA    | Charger kWh               | kWh/10            |     | STATUS/CC/METER
+01C6    | Panel Voltage             | V                 |     | STATUS/CC/METER
+01C7    | Charger Amps DC           | A (0:+128)        |     | STATUS/CC/METER
+01C8    | Status                    | 0004:EQ           |     | STATUS/CC/MODE
+01C9    | Aux Relay Mode / State    | 0086:PV Trigger   |     | STATUS/CC/MODE
+
 
 **NOTE**: Do not rely on this information as it was determined by poking values at a MATE, not by observing actual communication. Ensure you do your on testing before relying on this information!
 
