@@ -7,7 +7,7 @@
 # (My particular system barely has enough flash space to fit Python!)
 #
 
-from pymate.matenet import MateNET, MateMXDevice, MateFXDevice, MateDCDevice
+from pymate.matenet import MateNET, MateDevice, MateMXDevice, MateFXDevice, MateDCDevice
 from time import sleep
 from datetime import datetime
 from base64 import b64encode
@@ -205,6 +205,21 @@ def collect_dc():
 		log.exception("EXCEPTION in collect_dc()")
 		return None
 
+def synchronize():
+	"""
+	Synchronize devices
+	Should be called every 1 minute
+	"""
+	try:
+		MateDevice.synchronize(
+			master=mx, 
+			devices=(mx,fx,dc)
+		)
+	except:
+		log.exception("EXCEPTION in synchronize()")
+		return
+
+
 ##### COLLECTION STARTS #####
 
 log.info("Starting collection...")
@@ -214,6 +229,7 @@ now = datetime.now()
 t_next_status = now + STATUS_INTERVAL
 t_next_fx_status = now + FXSTATUS_INTERVAL
 t_next_dc_status = now + DCSTATUS_INTERVAL
+t_next_sync = now + SYNC_INTERVAL
 
 # Calculate datetime of next logpage collection
 d = now.date()
@@ -260,6 +276,9 @@ while True:
 				if packet:
 					upload_packet(packet)
 		
+		if now >= t_next_sync:
+			t_next_sync = now + SYNC_INTERVAL
+			synchronize()
 		
 	except Exception as e:
 		# Don't terminate the program, log and keep collecting.
