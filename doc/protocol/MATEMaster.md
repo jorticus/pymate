@@ -4,13 +4,16 @@ The MATE itself periodically sends commands by itself to other devices in the sy
 
 In particular it has the following duties:
 
-- Time synchronization
+- Date / Time synchronization
+- Battery Temperature synchronization
 - FBX (Battery Recharging)
 - AGS (Automatic Generator System)
-- FN-DC Net AH charge stop feature
+- FN-DC Net AmpHours charge float feature
 
 
 If you are replacing the MATE with pyMATE, I recommend you implement the below features, or connect pyMATE as a 2nd mate.
+
+See `MateDevice.synchronize()`.
 
 ## Time / Date Synchronization ##
 
@@ -48,13 +51,12 @@ Temperature Mapping: (CC[`4000`] : DC[`00f0`])
 118 : 28C : 0076
 125 : 25C : 007d
 129 : 24C : 0081
-131/133 : 23C : 0085, 0083
+131 : 23C : 0083
+133 : 23C : 0085
 134 : 22C : 0086
 138 : 21C : 008a
 139 : 20C : 008b
+
+Approximate formula:
+DegC = Round((-0.3576 * raw_temp) + 70.1)
 ```
-
-
-## Other Notes ##
-
-I have also seen registers 4005 & 4001 written to, with what seem to be flags of some kind. (I've seen 4005=0C7F, 4005=0D3B, 4001=008F, 4001=0090)
