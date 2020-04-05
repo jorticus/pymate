@@ -102,7 +102,6 @@ class MateDevice(object):
         assert(all([isinstance(d, MateDevice) for d in devices]))
         assert(isinstance(master, MateDevice)) # Should be MateMXDevice
         assert(master.DEVICE_TYPE == MateDevice.DEVICE_MX)
-        self.log.info("Synchronize")
 
         # 1. Update date & time for attached MX/DC units
         dt = datetime.datetime.now()
@@ -113,11 +112,12 @@ class MateDevice(object):
 
         # 2. Update battery temperature for attached FX/DC units
         bat_temp = master.battery_temp_raw
-        #self.log.info('Battery Temperature: %s' % master.convert_battery_temp(bat_temp))
         for dev in devices:
             if (dev is not None) and (dev is not master):
                 if (dev.DEVICE_TYPE in (MateDevice.DEVICE_FX, MateDevice.DEVICE_DC)):
                     dev.update_battery_temp(bat_temp)
+
+        return bat_temp
 
 # For backwards compatibility
 # DEPRECATRED

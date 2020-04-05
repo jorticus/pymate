@@ -211,10 +211,12 @@ def synchronize():
 	Should be called every 1 minute
 	"""
 	try:
-		MateDevice.synchronize(
+		bat_temp_raw = MateDevice.synchronize(
 			master=mx, 
 			devices=(mx,fx,dc)
 		)
+
+		log.info('Battery Temperature: %s' % MateMXDevice.convert_battery_temp(bat_temp_raw))
 	except:
 		log.exception("EXCEPTION in synchronize()")
 		return
