@@ -137,6 +137,8 @@ class MateDCDevice(MateDevice):
     """
     Communicate with a FLEXnet DC unit attached to the MateNET bus
     """
+    DEVICE_TYPE = MateNET.DEVICE_DC
+
     def scan(self):
         """
         Query the attached device to make sure we're communicating with an FLEXnet DC unit
@@ -144,7 +146,7 @@ class MateDCDevice(MateDevice):
         devid = super(MateDCDevice, self).scan()
         if devid == None:
             raise RuntimeError("No response from the FLEXnet DC unit")
-        if devid != MateNET.DEVICE_FLEXNETDC:
+        if devid != self.DEVICE_TYPE:
             raise RuntimeError("Attached device is not a FLEXnet DC unit! (DeviceID: %s)" % devid)
 
     def get_status(self):

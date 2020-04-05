@@ -9,12 +9,20 @@ class MateDevice(object):
     dev = MateDevice(bus, port=0)
     dev.scan()
     """
+    DEVICE_TYPE = None
+
+    DEVICE_HUB = 1
+    DEVICE_FX = 2
+    DEVICE_MX = 3
+    DEVICE_DC = 4
 
     # Common registers
     REG_DEVID = 0x0000
     REG_REV_A = 0x0002
     REG_REV_B = 0x0003
     REG_REV_C = 0x0004
+
+    REG_SET_BATTERY_TEMP = 0x4001
     REG_TIME  = 0x4004
     REG_DATE  = 0x4005
 
@@ -76,7 +84,38 @@ class MateDevice(object):
         self.write(self.REG_TIME, x1)
         self.write(self.REG_DATE, x2)
         
+    def update_battery_temp(self, raw_temp):
+        """
+        Update the battery temperature for FX/DC devices
+        """
+        self.write(self.REG_SET_BATTERY_TEMP, raw_temp)
 
+    @staticmethod
+    def synchronize(master, devices):
+        """
+        Synchronize connected outback devices.
+        Should be called once per minute.
+
+        :param master: The master MateMXDevice
+        :param devices: All connected MateDevices (including master)
+        """
+        assert(all([isinstance(d, MateDevice) for d in devices]))
+        assert(isinstance(master, MateDevice)) # Should be MateMXDevice
+
+        # 1. Update date & time for attached MX/DC units
+        dt = datetime.now()
+        for dev in devices:
+            if (dev is not None):
+                if (dev.DEVICE_TYPE in (MateDevice.DEVICE_MX, MateDevice.DEVICE_DC)):
+                    dev.update_time(dt)
+
+        # 2. Update battery temperature for attached FX/DC units
+        bat_temp = master.battery_temp_raw
+        self.log.info('Battery Temperature: %dC' % mx.convert_battery_temp(bat_temp))
+        for dev in devices:
+            if (dev is not None) and (dev is not master):
+                if (dev.DEVICE_TYPE in (MateDevice.DEVICE_FX, MateDevice.DEVICE_DC)):
+                    dev.update_battery_temp(bat_temp)
 
 # For backwards compatibility
 # DEPRECATRED

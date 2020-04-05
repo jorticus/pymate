@@ -142,6 +142,8 @@ class MXLogPagePacket(object):
 
 
 class MateMXDevice(MateDevice):
+    DEVICE_TYPE = MateNET.DEVICE_MX
+
     """
     Communicate with an MX unit attached to the MateNET bus
     """
@@ -152,7 +154,7 @@ class MateMXDevice(MateDevice):
         devid = super(MateMXDevice, self).scan()
         if devid == None:
             raise RuntimeError("No response from the MX unit")
-        if devid != MateNET.DEVICE_MX:
+        if devid != self.DEVICE_TYPE:
             raise RuntimeError("Attached device is not an MX unit! (DeviceID: %s)" % devid)
 
     def get_status(self):
@@ -236,6 +238,14 @@ class MateMXDevice(MateDevice):
     @property
     def setpt_float(self):
         return Value(self.query(0x0172) / 10.0, units='V', resolution=1)
+
+    @property
+    def battery_temp_raw(self):
+        return self.query(0x4000)
+
+    @staticmethod
+    def convert_battery_temp(raw_temp):
+        return (-0.3576 * raw_temp) + 70.05
 
 # For backwards compatibility
 # DEPRECATED

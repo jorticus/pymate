@@ -148,6 +148,8 @@ class MateFXDevice(MateDevice):
     """
     Communicate with an FX unit attached to the MateNET bus
     """
+    DEVICE_TYPE = MateNET.DEVICE_FX
+
     # Error bit-field
     ERROR_LOW_VAC_OUTPUT = 0x01 # Inverter could not supply enough AC voltage to meet demand
     ERROR_STACKING_ERROR = 0x02 # Communication error among stacked FX inverters (eg. 3 phase system)
@@ -210,7 +212,7 @@ class MateFXDevice(MateDevice):
         devid = super(MateFXDevice, self).scan()
         if devid == None:
             raise RuntimeError("No response from the FX unit")
-        if devid != MateNET.DEVICE_FX:
+        if devid != self.DEVICE_TYPE:
             raise RuntimeError("Attached device is not an FX unit! (DeviceID: %s)" % devid)
 
     def get_status(self):
