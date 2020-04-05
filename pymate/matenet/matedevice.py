@@ -70,7 +70,7 @@ class MateDevice(object):
         This should be sent every 15 seconds.
         NOTE: not supported on FX devices.
         """
-        assert(isinstance(time, datetime.datetime))
+        assert(isinstance(dt, datetime.datetime))
         x1 = (
             ((dt.hour & 0x1F) << 11) | 
             ((dt.minute & 0x3F) << 5) | 
@@ -101,9 +101,11 @@ class MateDevice(object):
         """
         assert(all([isinstance(d, MateDevice) for d in devices]))
         assert(isinstance(master, MateDevice)) # Should be MateMXDevice
+        assert(master.DEVICE_TYPE == MateDevice.DEVICE_MX)
+        self.log.info("Synchronize")
 
         # 1. Update date & time for attached MX/DC units
-        dt = datetime.now()
+        dt = datetime.datetime.now()
         for dev in devices:
             if (dev is not None):
                 if (dev.DEVICE_TYPE in (MateDevice.DEVICE_MX, MateDevice.DEVICE_DC)):
@@ -111,7 +113,7 @@ class MateDevice(object):
 
         # 2. Update battery temperature for attached FX/DC units
         bat_temp = master.battery_temp_raw
-        self.log.info('Battery Temperature: %dC' % mx.convert_battery_temp(bat_temp))
+        #self.log.info('Battery Temperature: %s' % master.convert_battery_temp(bat_temp))
         for dev in devices:
             if (dev is not None) and (dev is not master):
                 if (dev.DEVICE_TYPE in (MateDevice.DEVICE_FX, MateDevice.DEVICE_DC)):

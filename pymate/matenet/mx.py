@@ -245,7 +245,7 @@ class MateMXDevice(MateDevice):
 
     @staticmethod
     def convert_battery_temp(raw_temp):
-        return (-0.3576 * raw_temp) + 70.05
+        return Value((-0.3576 * raw_temp) + 70.1, units='C', resolution=0)
 
 # For backwards compatibility
 # DEPRECATED
