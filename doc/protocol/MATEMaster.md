@@ -12,17 +12,17 @@ In particular it has the following duties:
 
 If you are replacing the MATE with pyMATE, I recommend you implement the below features, or connect pyMATE as a 2nd mate.
 
-## Time Synchronization ##
+## Time / Date Synchronization ##
 
 The registers [`4004`/`4005`] are written every 30 sec to MX/DC devices (not FX), encoded in a particular format:
 
 ```
-[4004]
+[4004] (TIME)
 Bits 15..11 : Hour (24h)
 Bits 10..5  : Minute
 Bits 4..0   : Second (*2)
 
-[4005]
+[4005] (DATE)
 Bits 15..9 : Year  (2000..2127)
 Bits 8..5  : Month (0..12)
 Bits 4..0  : Day   (0..31)
@@ -35,11 +35,26 @@ Bits 4..0  : Day   (0..31)
 Presumably this is used to synchronize the MX/DC's internal clock to the MATE, so they know when to do things like resetting counters at midnight. Without this they still seem to be able to function properly, but I imagine they would get out of sync over time.
 
 
-## Other Commands ##
+## Battery Temperature Synchronization ##
 
-The purpose of these registers is unknown, but they are seen regularly on the bus:
+Every 1 minute the MATE will read register [`4000`] from the MX/CC and forward the value to register [`4001`] for attached FX/DC devices.
+
+I believe this register contains the raw battery NTC temperature sensor value, which the DC converts to DegC.
+
+The battery temperature can be read from the DC at register [`00f0`], and reports the temperature in DegC. This register gets updated when register [`4001`] is written to.
 
 ```
-READ  4000 (CC)
-WRITE 4001 (FX/DC)   - Only seen 0000 values
+Temperature Mapping: (CC[`4000`] : DC[`00f0`])
+118 : 28C : 0076
+125 : 25C : 007d
+129 : 24C : 0081
+131/133 : 23C : 0085, 0083
+134 : 22C : 0086
+138 : 21C : 008a
+139 : 20C : 008b
 ```
+
+
+## Other Notes ##
+
+I have also seen registers 4005 & 4001 written to, with what seem to be flags of some kind. (I've seen 4005=0C7F, 4005=0D3B, 4001=008F, 4001=0090)

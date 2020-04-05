@@ -98,10 +98,3 @@ If a Hub is attached, it will simply look at the first byte coming from the MATE
 I have not explored to see what happens if two MATEs are attached to a Hub.
 
 If you have multiple FX Inverters connected, I believe they synchronize using an out-of-band channel on the CAT5 cable. I have not experimented with this as I only have one FX.
-
-## Other Notes ##
-
-After analyzing captured traffic, I have seen that the MATE writes an incrementing value to register 4004. The pattern and meaning is unclear. 
-Example values: `8C78, 8C89, 8C98, 8CA9, 8CB8, 8CC9, 8CD8`
-
-I have also seen registers 4005 & 4001 written to, with what seem to be flags of some kind. (I've seen 4005=0C7F, 4005=0D3B, 4001=008F, 4001=0090)
