@@ -25,10 +25,6 @@ The MATE asks for a status page once per second, except for the FLEXnet DC statu
 
 # MX/CC #
 
-**TODO:** The following is unaccounted for:
-- Aux mode
-- Aux state
-
 ```
 81 22 33 44 55 66 77 88 99 AA BB CC DD
 ||  |  |  |  |  |  |  |  | |---| |---|  
