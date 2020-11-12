@@ -133,7 +133,7 @@ class MateNET(object):
         """
         resp = self.send(MateNET.TYPE_QUERY, addr=reg, param=param, port=port)
         if resp:
-            response = MateNET.QueryResponse.from_buffer(resp)
+            response = MateNET.QueryResponse.from_buffer(resp[-MateNET.QueryResponse._size:])
             return response.value
 
     def control(self, reg, value, port=0):
