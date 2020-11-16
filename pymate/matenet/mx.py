@@ -13,6 +13,7 @@ from . import MateDevice, MateNET
 
 class MXStatusPacket(object):
     fmt = Struct('>BbbbBBBBBHH')
+    size = fmt.size
 
     STATUS_SLEEPING = 0
     STATUS_FLOATING = 1
@@ -83,6 +84,7 @@ class MXStatusPacket(object):
 
 class MXLogPagePacket(object):
     fmt = Struct('>BBBBBBBBBBBBBB')
+    size = fmt.size
 
     def __init__(self):
         self.day = None
@@ -162,7 +164,7 @@ class MateMXDevice(MateDevice):
         Request a status packet from the controller
         :return: A MXStatusPacket
         """
-        resp = self.send(MateNET.TYPE_STATUS, addr=1, param=0x00)
+        resp = self.send(MateNET.TYPE_STATUS, addr=1, param=0x00, response_len=MXStatusPacket.size)
         if resp:
             return MXStatusPacket.from_buffer(resp)
 
@@ -172,7 +174,7 @@ class MateMXDevice(MateDevice):
         :param day: The day, counting backwards from today (0:Today, -1..-255)
         :return: A MXLogPagePacket
         """
-        resp = self.send(MateNET.TYPE_LOG, addr=0, param=-day)
+        resp = self.send(MateNET.TYPE_LOG, addr=0, param=-day, response_len=MXLogPagePacket.size)
         if resp:
             return MXLogPagePacket.from_buffer(resp)
 

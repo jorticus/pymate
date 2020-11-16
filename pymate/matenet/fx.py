@@ -14,6 +14,7 @@ from . import MateDevice, MateNET
 
 class FXStatusPacket(object):
     fmt = Struct('>BBBBBBBBBhBB')
+    size = fmt.size
 
     def __init__(self, misc=None):
         self.raw = None
@@ -220,7 +221,7 @@ class MateFXDevice(MateDevice):
         Request a status packet from the inverter
         :return: A FXStatusPacket
         """
-        resp = self.send(MateNET.TYPE_STATUS, addr=1)
+        resp = self.send(MateNET.TYPE_STATUS, addr=1, response_len=FXStatusPacket.size)
         if resp:
             status = FXStatusPacket.from_buffer(resp)
             self._is_230v = status.is_230v

@@ -66,7 +66,7 @@ class MateNET(object):
 
         self.tap = tap
 
-    def send(self, ptype, addr, param=0, port=0):
+    def send(self, ptype, addr, param=0, port=0, response_len=None):
         """
         Send a MateNET packet to the bus (as if it was sent by a MATE unit) and return the response
         :param port: Port to send to, if a hub is present (0 if no hub or talking to the hub)
@@ -84,7 +84,7 @@ class MateNET(object):
                 txbuf = packet.to_buffer()
                 self.port.send(txbuf)
 
-                rxbuf = self.port.recv()
+                rxbuf = self.port.recv(response_len)
                 if not rxbuf:
                     self.log.debug('RETRY')
                     continue  # No response - try again
@@ -131,9 +131,9 @@ class MateNET(object):
         :param param: Optional parameter
         :return: The value (16-bit uint)
         """
-        resp = self.send(MateNET.TYPE_QUERY, addr=reg, param=param, port=port)
+        resp = self.send(MateNET.TYPE_QUERY, addr=reg, param=param, port=port, response_len=MateNET.QueryResponse.size)
         if resp:
-            response = MateNET.QueryResponse.from_buffer(resp[-MateNET.QueryResponse._size:])
+            response = MateNET.QueryResponse.from_buffer(resp)
             return response.value
 
     def control(self, reg, value, port=0):
@@ -144,7 +144,7 @@ class MateNET(object):
         :param port: Port (0-10)
         :return: ???
         """
-        resp = self.send(MateNET.TYPE_CONTROL, addr=reg, param=value, port=port)
+        resp = self.send(MateNET.TYPE_CONTROL, addr=reg, param=value, port=port, response_len=MateNET.QueryResponse.size)
         if resp:
             return None  # TODO: What kind of response do we get from a control packet?
 
