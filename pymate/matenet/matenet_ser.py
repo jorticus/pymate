@@ -116,10 +116,7 @@ class MateNETSerial(object):
             if len(data) < expected_len:
                 raise RuntimeError("Error receiving mate packet - Received packet too small (%d bytes, expected %d)" % (len(data), expected_len))
             if len(data) > expected_len:
-                if self.TRIM_LARGE_PACKETS:
-                    data = data[-expected_len:]
-                else:
-                    RuntimeError("Error receiving mate packet - Received packet too large (%d bytes, expected %d)" % (len(data), expected_len)) 
+                RuntimeError("Error receiving mate packet - Received packet too large (%d bytes, expected %d)" % (len(data), expected_len)) 
 
         # Checksum
         packet = data[0:-2]
@@ -167,5 +164,8 @@ class MateNETSerial(object):
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('RX: %s', (' '.join('%.2x' % ord(c) for c in rawdata)))
+
+        if self.TRIM_LARGE_PACKETS:
+            rawdata = rawdata[-expected_len:]
 
         return MateNETSerial._parse_packet(rawdata, expected_len)
