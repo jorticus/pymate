@@ -165,7 +165,7 @@ class MateNETSerial(object):
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('RX: %s', (' '.join('%.2x' % ord(c) for c in rawdata)))
 
-        if self.TRIM_LARGE_PACKETS:
+        if self.TRIM_LARGE_PACKETS and expected_len is not None:
             rawdata = rawdata[-expected_len:]
 
         return MateNETSerial._parse_packet(rawdata, expected_len)
