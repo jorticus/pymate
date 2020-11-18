@@ -77,6 +77,9 @@ class MateNET(object):
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('Send [Port%d, Type=0x%.2x, Addr=0x%.4x, Param=0x%.4x]', port, ptype, addr, param)
 
+        if response_len is not None:
+            response_len += 1 # Account for command ack byte
+
         packet = MateNET.TxPacket(port, ptype, addr, param)
         data = None
         for i in range(self.RETRY_PACKET+1):
