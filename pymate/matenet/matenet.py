@@ -171,6 +171,7 @@ class MateNET(object):
         """
         result = self.query(0x00, port=port)
         if result is not None:
+            # TODO: Don't know what the upper byte is for, but it is seen on some MX units
             result = result & 0x00FF
         return result
 
@@ -209,7 +210,7 @@ class MateNET(object):
         mx = MateMXDevice(bus, port)
         """
         for i in range(0,10):
-            dtype = self.query(0x00, port=i)
+            dtype = self.scan(port=i)
             if dtype and dtype == device_type:
                 self.log.info('Found %s device at port %d',
                     MateNET.DEVICE_TYPES[dtype],
