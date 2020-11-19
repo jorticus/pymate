@@ -10,7 +10,10 @@ You will need a simple adapter circuit and a TTL serial port. For more details, 
 
 To see the library in action, check out my post on connecting it with Grafana! [jared.geek.nz/grafana-outback-solar](http://jared.geek.nz/grafana-outback-solar)
 
-Also, check out my Arduino companion project [uMATE](https://github.com/jorticus/uMATE)
+### Related Projects
+
+- [outback_mate_rs232](https://github.com/Ryanf55/outback_mate_rs232) - For use with the Mate's RS232 port
+- [uMATE](https://github.com/jorticus/uMATE) - Companion Arduino library, featuring more reliable communication and better perf
 
 ## MX/CC Charge Controller Interface
 
