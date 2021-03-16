@@ -37,8 +37,8 @@ class MateDevice(object):
     def scan(self):
         return self.matenet.scan(self.port)
 
-    def send(self, ptype, addr, param=0):
-        return self.matenet.send(ptype, addr, param=param, port=self.port)
+    def send(self, ptype, addr, param=0, response_len=None):
+        return self.matenet.send(ptype, addr, param=param, port=self.port, response_len=None)
 
     def query(self, reg, param=0):
         return self.matenet.query(reg, param=param, port=self.port)

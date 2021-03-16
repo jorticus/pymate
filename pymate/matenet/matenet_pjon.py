@@ -184,7 +184,7 @@ class MateNETPJON(object):
         self.log.info('RX TIMEOUT')
         return None
 
-    def recv(self, timeout=1.0):
+    def recv(self, expected_len=None, timeout=1.0):
         """
         Receive a packet from PJON bus
         :param timeout: seconds to wait until returning, 0 to return immediately, None to block indefinitely
@@ -261,6 +261,8 @@ class MateNETPJON(object):
 
             if len(payload) == 1:
                 raise RuntimeError("PJON error: Error returned from controller: %.2x" % (payload[0]))
+
+            # TODO: Validate payload length against expected_len
 
             return ''.join(chr(c) for c in payload) # TODO: Hacky
 

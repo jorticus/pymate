@@ -26,6 +26,8 @@ def struct(fmt, fields):
         _size = fmt.size
         _nfields = nfields
 
+        size = fmt.size
+
         def __init__(self, *args, **kwargs):
             """
             Initialize the struct's fields from the provided args.

@@ -161,7 +161,7 @@ class MateDCDevice(MateDevice):
     def get_status_raw(self):
         data = ''
         for i in range(0x0A,0x0F+1):
-            resp = self.send(MateNET.TYPE_STATUS, addr=i)
+            resp = self.send(MateNET.TYPE_STATUS, addr=i, response_len=(13*6))
             if not resp:
                 return None
             data += str(resp)

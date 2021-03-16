@@ -57,6 +57,9 @@ class MateNETSerial(object):
         # Amount of time with no communication that signifies the end of the packet
         self.END_OF_PACKET_TIMEOUT = 0.02 # seconds
 
+        # Set to true to workaround issue where some received packets are too large
+        self.TRIM_LARGE_PACKETS = True
+
         self.supports_spacemark = supports_spacemark
         if self.supports_spacemark is None:
             self.supports_spacemark = (
@@ -97,7 +100,7 @@ class MateNETSerial(object):
         return sum(ord(c) for c in data) % 0xFFFF
 
     @staticmethod
-    def _parse_packet(data):
+    def _parse_packet(data, expected_len=None):
         """
         Parse a MATE packet, validatin the length and checksum
         :param data: Raw string data
@@ -108,6 +111,12 @@ class MateNETSerial(object):
             raise RuntimeError("Error receiving mate packet - No data received")
         if len(data) < 3:
             raise RuntimeError("Error receiving mate packet - Received packet too small (%d bytes)" % (len(data)))
+
+        if expected_len is not None:
+            if len(data) < expected_len:
+                raise RuntimeError("Error receiving mate packet - Received packet too small (%d bytes, expected %d)" % (len(data), expected_len))
+            if len(data) > expected_len:
+                RuntimeError("Error receiving mate packet - Received packet too large (%d bytes, expected %d)" % (len(data), expected_len)) 
 
         # Checksum
         packet = data[0:-2]
@@ -133,7 +142,7 @@ class MateNETSerial(object):
         # Rest of the bytes have bit8 cleared (data byte)
         self._write_9b(data[1:] + footer, 0)
 
-    def recv(self, timeout=1.0):
+    def recv(self, expected_len=None, timeout=1.0):
         """
         Receive a packet from the MateNET bus, waiting if necessary
         :param timeout: seconds to wait until returning, 0 to return immediately, None to block indefinitely
@@ -156,4 +165,10 @@ class MateNETSerial(object):
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('RX: %s', (' '.join('%.2x' % ord(c) for c in rawdata)))
 
-        return MateNETSerial._parse_packet(rawdata)
+        if expected_len is not None:
+            expected_len += 2 # Account for checksum
+
+            if self.TRIM_LARGE_PACKETS and (len(rawdata) > expected_len):
+                rawdata = rawdata[-expected_len:]
+
+        return MateNETSerial._parse_packet(rawdata, expected_len)

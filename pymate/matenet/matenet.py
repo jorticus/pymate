@@ -66,7 +66,7 @@ class MateNET(object):
 
         self.tap = tap
 
-    def send(self, ptype, addr, param=0, port=0):
+    def send(self, ptype, addr, param=0, port=0, response_len=None):
         """
         Send a MateNET packet to the bus (as if it was sent by a MATE unit) and return the response
         :param port: Port to send to, if a hub is present (0 if no hub or talking to the hub)
@@ -77,6 +77,9 @@ class MateNET(object):
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('Send [Port%d, Type=0x%.2x, Addr=0x%.4x, Param=0x%.4x]', port, ptype, addr, param)
 
+        if response_len is not None:
+            response_len += 1 # Account for command ack byte
+
         packet = MateNET.TxPacket(port, ptype, addr, param)
         data = None
         for i in range(self.RETRY_PACKET+1):
@@ -84,7 +87,7 @@ class MateNET(object):
                 txbuf = packet.to_buffer()
                 self.port.send(txbuf)
 
-                rxbuf = self.port.recv()
+                rxbuf = self.port.recv(response_len)
                 if not rxbuf:
                     self.log.debug('RETRY')
                     continue  # No response - try again
@@ -131,7 +134,7 @@ class MateNET(object):
         :param param: Optional parameter
         :return: The value (16-bit uint)
         """
-        resp = self.send(MateNET.TYPE_QUERY, addr=reg, param=param, port=port)
+        resp = self.send(MateNET.TYPE_QUERY, addr=reg, param=param, port=port, response_len=MateNET.QueryResponse.size)
         if resp:
             response = MateNET.QueryResponse.from_buffer(resp)
             return response.value
@@ -144,7 +147,7 @@ class MateNET(object):
         :param port: Port (0-10)
         :return: ???
         """
-        resp = self.send(MateNET.TYPE_CONTROL, addr=reg, param=value, port=port)
+        resp = self.send(MateNET.TYPE_CONTROL, addr=reg, param=value, port=port, response_len=MateNET.QueryResponse.size)
         if resp:
             return None  # TODO: What kind of response do we get from a control packet?
 
@@ -168,6 +171,7 @@ class MateNET(object):
         """
         result = self.query(0x00, port=port)
         if result is not None:
+            # TODO: Don't know what the upper byte is for, but it is seen on some MX units
             result = result & 0x00FF
         return result
 
@@ -206,7 +210,7 @@ class MateNET(object):
         mx = MateMXDevice(bus, port)
         """
         for i in range(0,10):
-            dtype = self.query(0x00, port=i)
+            dtype = self.scan(port=i)
             if dtype and dtype == device_type:
                 self.log.info('Found %s device at port %d',
                     MateNET.DEVICE_TYPES[dtype],
