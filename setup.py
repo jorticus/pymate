@@ -3,11 +3,6 @@
 import sys
 from setuptools import setup
 
-if sys.version_info[0] != 2:
-    sys.stderr.write("Only Python 2 is supported! Please use Python 2!\n")
-    sys.exit(1)
-
-
 setup(
     name='pymate',
     version='v2.1',
