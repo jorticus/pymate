@@ -270,7 +270,7 @@ if __name__ == "__main__":
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
 
-    port = MateNETOverPJON('COM6')
+    port = MateNETPJON('COM6')
     port.log.setLevel(logging.DEBUG)
     port.log.addHandler(ch)
     while True:

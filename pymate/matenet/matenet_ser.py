@@ -76,8 +76,11 @@ class MateNETSerial(object):    """
 
     def _write_9b(self, data, bit8):
         assert(data is not None and len(data) > 0)
-        assert(isinstance(data, bytes))        if self.log.isEnabledFor(logging.DEBUG):
+        assert(isinstance(data, bytes))
+
+        if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('TX: [%d] %s', bit8, bin2hexstr(data))
+
         if self.supports_spacemark:
             self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
             self.ser.write(data)
@@ -166,7 +169,7 @@ class MateNETSerial(object):    """
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug('RX: %s', bin2hexstr(rawdata))
-        return MateNET._parse_packet(rawdata)
+
         if expected_len is not None:
             expected_len += 2 # Account for checksum
 

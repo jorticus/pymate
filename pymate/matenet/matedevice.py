@@ -121,7 +121,7 @@ class MateDevice(object):
 
 # For backwards compatibility
 # DEPRECATRED
-class Mate(MateDevice):
-    def __init__(self, comport, supports_spacemark=None):
-        self.bus = MateNET(comport, supports_spacemark)
-        super(Mate, self).__init__(self.bus, port=0)
+# class Mate(MateDevice):
+#     def __init__(self, comport, supports_spacemark=None):
+#         self.bus = MateNET(comport, supports_spacemark)
+#         super(Mate, self).__init__(self.bus, port=0)

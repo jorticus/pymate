@@ -157,11 +157,11 @@ class MateTester(MateNET):
         Query a register, and return the value to the MATE
         (Override this in your subclass)
         """
-        print "Unknown query! (0x%.4x, port:%d)" % (query.reg, port)
+        log.warning("Unknown query! (0x%.4x, port:%d)" % (query.reg, port))
         return 0
 
     def process_write(self, port, query):
-        print "Unknown control! (0x%.4x, port:%d)" % (query.reg, port)
+        log.warning("Unknown control! (0x%.4x, port:%d)" % (query.reg, port))
         return 0
 
     def handle_time_update(self, query):
@@ -249,7 +249,7 @@ class MXEmulator(MateTester):
         _, _, payload = packet
         query = MateNET.QueryPacket.from_buffer(payload)
         day = query.param
-        print "Get log entry (day -%d)" % day
+        log.info("Get log entry (day -%d)" % day)
         self.send_packet(self.TYPE_LOG, '\x02\xFF\x17\x01\x16\x3C\x00\x01\x01\x40\x00\x10\x10' + chr(day))
         #self.send_packet(self.TYPE_LOG, '\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF' + chr(day))
         #self.send_packet(self.TYPE_LOG, '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x48' + chr(day))
@@ -260,7 +260,7 @@ class MXEmulator(MateTester):
         """
         # Get device type
         if query.reg == 0x0000:
-            print "SCAN received, pretending to be an MX/CC"
+            log.info("SCAN received, pretending to be an MX/CC")
             return self.DEVICE
 
         ##### STATUS/CC/METER #####
@@ -380,7 +380,7 @@ class FXEmulator(MateTester):
         """
         # Get device type
         if query.reg == 0x0000:
-            print "SCAN received, pretending to be an FX"
+            log.info("SCAN received, pretending to be an FX")
             return self.DEVICE
 
         # Revision (2.3.4)
@@ -623,7 +623,7 @@ class FlexNETDCEmulator(MateTester):
         """
         # Get device type
         if query.reg == 0x0000:
-            print "SCAN received, pretending to be a FlexNET DC"
+            log.info("SCAN received, pretending to be a FlexNET DC")
             return self.DEVICE
 
         # Revision (2.3.4)
@@ -682,7 +682,7 @@ class HubEmulator(MateTester):
         # SCAN: What device is attached to the specified port?
         if query.reg == 0x0000:
             # Pretend to be a hub attached to port 0
-            print "SCAN received, pretending to be a hub"
+            log.info("SCAN received, pretending to be a hub")
             return MateNET.DEVICE_HUB
 
         return None
@@ -716,7 +716,7 @@ if __name__ == "__main__":
     #unit = FlexNETDCEmulator(port)
 
     try:
-        print "Running"
+        log.info("Running")
         unit.run()
 
     finally:

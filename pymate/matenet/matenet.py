@@ -81,7 +81,7 @@ class MateNET(object):
             response_len += 1 # Account for command ack byte
 
         packet = MateNET.TxPacket(port, ptype, addr, param)
-        data = None
+
         for i in range(self.RETRY_PACKET+1):
             try:
                 txbuf = packet.to_buffer()
