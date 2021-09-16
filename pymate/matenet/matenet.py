@@ -10,8 +10,8 @@ __author__ = 'Jared'
 
 from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
 from pymate.cstruct import struct
-from matenet_ser import MateNETSerial
-from matenet_pjon import MateNETPJON
+from .matenet_ser import MateNETSerial
+from .matenet_pjon import MateNETPJON
 from time import sleep
 import logging
 
@@ -116,7 +116,6 @@ class MateNET(object):
         if not rxbuf:
             return None
 
-        # Validation
         if len(rxbuf) < 2:
             raise RuntimeError("Error receiving packet - not enough data received")
 

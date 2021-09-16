@@ -115,7 +115,7 @@ class MateNETPJON(object):
 
     def _crc32(self, data):
         """
-        See PJON\src\utils\crc\PJON_CRC32.h
+        See PJON\\src\\utils\\crc\\PJON_CRC32.h
         """
         crc = 0xFFFFFFFF
         for b in data:

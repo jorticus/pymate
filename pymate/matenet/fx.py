@@ -411,4 +411,4 @@ def MateFX(comport, supports_spacemark=None, port=0):
 
 if __name__ == "__main__":
     status = FXStatusPacket.from_buffer('\x28\x0A\x00\x00\x0A\x00\x64\x00\x00\xDC\x14\x0A')
-    print status
+    print(status)
