@@ -1,6 +1,6 @@
 import sys
 #from matecom import MateCom  # For use with MATE RS232 interface
-from matenet import MateMX  # For use with proprietry MateNET protocol
+from pymate.matenet import MateNET, MateMXDevice  # For use with proprietry MateNET protocol
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -58,8 +58,9 @@ class DynamicAxes:
 
 
 if __name__ == "__main__":
-    #mate = MateCom(comport)  # RS232
-    mate = MateMX(comport)  # MateNET
+    #bus = MateNET(comport)  # RS232
+    bus = MateNET(comport)  # MateNET
+    mate = MateMXDevice(bus, port=0)
 
     # Set up plot
     fig = plt.figure()

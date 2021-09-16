@@ -1,6 +1,6 @@
 # pyMATE
 
-![pyMATE](http://jared.geek.nz/pymate/images/thumbs/tile_thumbB.png "pyMATE")
+![pyMATE](doc/pymate.png "pyMATE")
 
 pyMATE is a python library that can be used to emulate an Outback MATE unit, and talk to any supported
 Outback Power Inc. device such as an MX charge controller, an FX inverter, a FlexNET DC monitor, or a hub with
@@ -8,18 +8,34 @@ multiple devices attached to it.
 
 You will need a simple adapter circuit and a TTL serial port. For more details, see [jared.geek.nz/pymate](http://jared.geek.nz/pymate)
 
-Also, to see the library in action, check out my post on connecting it with Grafana! [jared.geek.nz/grafana-outback-solar](http://jared.geek.nz/grafana-outback-solar)
+To see the library in action, check out my post on connecting it with Grafana! [jared.geek.nz/grafana-outback-solar](http://jared.geek.nz/grafana-outback-solar)
 
-## MX Interface
+### Related Projects
+
+- [outback_mate_rs232](https://github.com/Ryanf55/outback_mate_rs232) - For use with the Mate's RS232 port
+- [uMATE](https://github.com/jorticus/uMATE) - Companion Arduino library, featuring more reliable communication and better perf
+
+## MX/CC Charge Controller Interface
 
 To set up communication with an MX charge controller:
     
 ```python
-mate_mx = MateMX('COM1')         # Windows
-mate_mx = MateMX('/dev/ttyUSB0') # Linux
-mate_mx.scan(0)  # 0: No hub. 1-9: Hub port? (Untested)
+mate_bus = MateNET('COM1')         # Windows
+mate_bus = MateNET('/dev/ttyUSB0') # Linux
+
+mate_mx = MateMXDevice(mate_bus, port=0) # 0: No hub. 1-9: Hub port
+mate_mx.scan()  # This will raise an exception if the device isn't found
 ```
-    
+
+Or to automatically a hub for an attached MX:
+```python
+bus = MateNET('COM1', supports_spacemark=False)
+mate = MateMXDevice(bus, port=bus.find_device(MateNET.DEVICE_MX))
+
+# Check that an MX unit is attached and is responding
+mate.scan()
+```
+
 You can now communicate with the MX as though you are a MATE device.
 
 ### Status
@@ -82,41 +98,41 @@ mate_mx.setpt_float
     
 Note that to read each of these properties a separate message must be sent, so it will be slower than getting values from a status packet.
 
-## FX Interface
-
-I don't have an FX unit to test with, so I cannot guarantee this will function. I determined everything by poking values at the MATE, and seeing what it sends back.
+## FX Inverter Interface
 
 To set up communication with an FX inverter:
 
 ```python
-mate_fx = MateFX('COM2')         # Windows
-mate_fx = MateFX('/dev/ttyUSB1') # Linux
-mate_fx.scan(0)
+mate_bus = MateNET('COM1')         # Windows
+mate_bus = MateNET('/dev/ttyUSB0') # Linux
+
+mate_fx = MateDCDevice(bus, port=bus.find_device(MateNET.DEVICE_FX))
+mate_fx.scan()
 
 status = mate_fx.get_status()
 errors = mate_fx.errors
 warnings = mate_fx.warnings
 ```
 
-There's still a few unknowns, so you'll have to look through the source code ([fx.py](matenet/fx.py) to work out what this produces, at least until I have a unit to test with myself.
-
 ### Controls
 
-You can control an FX unit like you can through the MATE unit (untested though!):
+You can control an FX unit like you can through the MATE unit:
 
 ```python
 mate_fx.inverter_control = 0  # 0: Off, 1: Search, 2: On
 mate_fx.acin_control = 0      # 0: Drop, 1: Use
 mate_fx.charge_control = 0    # 0: Off, 1: Auto, 2: On
 mate_fx.aux_control = 0       # 0: Off, 1: Auto, 2: On
-mate_fx.eq_control = 0        # 0: Off, ??? not sure
+mate_fx.eq_control = 0        # 0: Off, 1: Auto, 2: On
 ```
     
 These are implemented as python properties, so you can read and write them. Writing to them affects the FX unit.
+
+**WARNING**: Setting inverter_control to 0 **WILL** cut power to your house!
     
 ### Properties
 
-There are a bunch of interesting properties, a lot not available from the status packet
+There are a bunch of interesting properties, many of which are not available from the status packet:
 
 ```python
 mate_fx.disconn_status
@@ -142,6 +158,33 @@ mate_fx.equalize_setpoint
 mate_fx.equalize_time_remaining
 ```
 
+## FLEXnet DC Power Monitor Interface
+
+To set up communication with a FLEXnet DC power monitor:
+
+```python
+mate_bus = MateNET('COM1')         # Windows
+mate_bus = MateNET('/dev/ttyUSB0') # Linux
+
+mate_dc = MateDCDevice(bus, port=bus.find_device(MateNET.DEVICE_FLEXNETDC))
+
+mate_dc.scan()
+
+status = mate_dc.get_status()
+```
+
+The following information is available through `get_status()`:
+- State of Charge (%)
+- Battery Voltage (0-80V, 0.1V resolution)
+- Current kW/Amps for Shunts A/B/C
+- Current kW/Amps for In/Out/Battery (Max +/-1000A, 10W/0.1A resolution)
+- Daily kWH/Ah for Shunts A/B/C & In/Out/Battery/Net
+- Daily minimum State of Charge
+- Days since last full charge (0.1 day resolution)
+
+You can manually reset daily accumulated values by writing to certain registers, 
+but this is not yet implemented.
+
 ## Example Server
 
 For convenience, a simple server is included that captures data periodically
@@ -149,5 +192,24 @@ and uploads it to a remote server via a REST API.
 The remote server then stores the received data into a database of your choice.
 
 
+## PJON Bridge
+
+The default serial interface doesn't always work well, and it's not the most efficient,
+so there is an alternative protocol you can use which pipes the data to an Arduino via PJON protocol.
+
+To use this alternative protocol:
+
+```python
+port = MateNETPJON('COM1')
+bus = MateNET(port)
+```
+
+See [this page](https://github.com/jorticus/uMATE/blob/master/examples/Bridge/Bridge.ino) in my uMATE project for an example bridge implementation.
+
+## MATE Protocol RE ###
+
+For details on the low-level communication protocol and available registers, see [doc/protocol/Protocol.md](doc/protocol/Protocol.md)
+
+---
 
 I am open to contributions, especially if you can test it with any devices I don't have.
