@@ -119,8 +119,8 @@ class MateNET(object):
         if len(rxbuf) < 2:
             raise RuntimeError("Error receiving packet - not enough data received")
 
-        if ord(rxbuf[0]) & 0x80 == 0x80:
-            raise RuntimeError("Invalid command 0x%.2x" % (ord(rxbuf[0]) & 0x7F))
+        if rxbuf[0] & 0x80 == 0x80:
+            raise RuntimeError("Invalid command 0x%.2x" % (rxbuf[0] & 0x7F))
             
         return rxbuf[1:]
 
