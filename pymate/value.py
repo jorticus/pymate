@@ -9,12 +9,12 @@ class Value(object):
         self.value = float(value)
         self.units = units
         self.resolution = resolution
-        self.fmt = "%%.%df" % resolution
-        if self.units:
-            self.fmt += str(self.units)
 
     def __str__(self):
-        return self.fmt % self.value
+        fmt = f"%.{self.resolution}f" % self.value
+        if self.units:
+            fmt += str(self.units)
+        return fmt
 
     def __repr__(self):
         return self.__str__()

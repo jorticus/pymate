@@ -5,9 +5,9 @@ from .matedevice import MateDevice
 #from .matenet_pjon import MateNETPJON
 from .matenet_ser import MateNETSerial
 from .matenet import MateNET
-from .mx import MateMXDevice
-from .fx import MateFXDevice
-from .flexnetdc import MateDCDevice
+from .mx import MateMXDevice, MXStatusPacket
+from .fx import MateFXDevice, FXStatusPacket
+from .flexnetdc import MateDCDevice, DCStatusPacket
 
 # DEPRECATED:
 #from .matedevice import Mate
