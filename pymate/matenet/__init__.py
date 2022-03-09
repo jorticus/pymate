@@ -10,6 +10,6 @@ from .fx import MateFXDevice
 from .flexnetdc import MateDCDevice
 
 # DEPRECATED:
-from .matedevice import Mate
-from .mx import MateMX
-from .fx import MateFX
+#from .matedevice import Mate
+#from .mx import MateMX
+#from .fx import MateFX

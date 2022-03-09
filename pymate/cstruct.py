@@ -1,7 +1,7 @@
 __author__ = 'Jared'
 
 from struct import calcsize, unpack_from, Struct
-from util import to_byte, to_bytestr
+from .util import to_byte, to_bytestr
 
 
 def struct(fmt, fields):

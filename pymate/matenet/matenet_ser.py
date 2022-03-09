@@ -26,9 +26,10 @@ from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
 from pymate.cstruct import struct
 from time import sleep
 import logging
-from util import to_byte, to_bytestr, bin2hexstr
+from ..util import to_byte, to_bytestr, bin2hexstr
 
-class MateNETSerial(object):    """
+class MateNETSerial(object):    
+    """
     Interface for the MATE RJ45 bus ("MateNET")
     This class only handles the low level protocol,
     it does not care what is attached to the bus.
@@ -75,14 +76,18 @@ class MateNETSerial(object):    """
         return p
 
     def _write_9b(self, data, bit8):
-        assert(data is not None and len(data) > 0)
-        assert(isinstance(data, bytes))
+        
+        #assert(data is not None and len(data) > 0)
+        #assert(isinstance(data, bytes))
 
         if self.log.isEnabledFor(logging.DEBUG):
-            self.log.debug('TX: [%d] %s', bit8, bin2hexstr(data))
+            self.log.debug('TX: [%d] %s', bit8, data)
 
         if self.supports_spacemark:
-            self.ser.parity = (PARITY_MARK if bit8 else PARITY_SPACE)
+            if bit8:
+                self.ser.parity = PARITY_MARK
+            else:
+                self.ser.parity = PARITY_SPACE
             self.ser.write(data)
             sleep(self.FUDGE_FACTOR)
         else:
@@ -139,13 +144,14 @@ class MateNETSerial(object):    """
         """
 
         checksum = self._calc_checksum(data)
-        footer = chr((checksum >> 8) & 0xFF) + chr(checksum & 0xFF)
+        footerh = checksum >> 8 & 0xFF
+        footerl = checksum & 0xFF
 
         # First byte has bit8 set (address byte)
-        self._write_9b(data[0], 1)
+        self._write_9b(bytes([data[0]]), 1)
 
         # Rest of the bytes have bit8 cleared (data byte)
-        self._write_9b(data[1:] + footer, 0)
+        self._write_9b(data[1:] + bytes([footerh]) + bytes([footerl]), 0)
 
     def recv(self, expected_len=None, timeout=1.0):
         """
