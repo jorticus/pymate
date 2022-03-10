@@ -14,7 +14,7 @@ from time import sleep
 from pymate.cstruct import struct
 from serial import PARITY_EVEN, PARITY_MARK, PARITY_ODD, PARITY_SPACE, Serial
 
-from matenet import MateNETPJON, MateNETSerial
+from . import MateNETPJON, MateNETSerial
 
 
 class MateNET(object):

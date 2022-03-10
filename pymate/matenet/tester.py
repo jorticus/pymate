@@ -22,7 +22,7 @@ from struct import pack
 import settings
 from pymate.packet_capture.wireshark_tap import WiresharkTap
 
-from matenet import MateDevice, MateNET, MateNETPJON
+from . import MateDevice, MateNET, MateNETPJON
 
 log = logging.getLogger('mate')
 

@@ -10,7 +10,7 @@ from struct import Struct
 
 from pymate.value import Value
 
-from matenet import MateDevice, MateNET
+from . import MateDevice, MateNET
 
 
 class MXStatusPacket(object):
