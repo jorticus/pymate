@@ -149,7 +149,7 @@ class MateDCDevice(MateDevice):
         if devid == None:
             raise RuntimeError("No response from the FLEXnet DC unit")
         if devid != self.DEVICE_TYPE:
-            raise RuntimeError("Attached device is not a FLEXnet DC unit! (DeviceID: %s)" % )
+            raise RuntimeError("Attached device is not a FLEXnet DC unit! (DeviceID: %s)" % devid)
 
     def get_status(self):
         """

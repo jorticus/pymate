@@ -51,7 +51,7 @@ class WiresharkTap(object):
         self._pipe = self._create_pipe(self.WIRESHARK_PIPENAME)
 
         # Connect pipe
-        print("PCAP pipe created: %s" % self.WIRESHARK_PIPENAME)
+        print(f"PCAP pipe created: {self.WIRESHARK_PIPENAME}")
         print("Waiting for connection...")
         self._connect_pipe(timeout_ms)
         print("Pipe opened")
