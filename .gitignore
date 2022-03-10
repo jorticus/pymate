@@ -1,6 +1,7 @@
 
 # Add your custom ignores here:
 .idea/
+**venv/
 
 
 # Created by https://www.gitignore.io/api/python,macos,windows,visualstudiocode,pycharm

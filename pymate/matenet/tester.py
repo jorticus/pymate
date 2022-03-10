@@ -514,7 +514,6 @@ class FlexNETDCEmulator(MateTester):
             query = MateNET.QueryPacket.from_buffer(payload)
             self.packet_status(port, query)
             return True
-            pass
         return False
 
     def packet_status(self, port, query):
