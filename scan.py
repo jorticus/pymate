@@ -75,5 +75,5 @@ if dtype == MateNET.DEVICE_HUB:
         subdev = MateDevice(bus, port=i)
         print_device(subdev)
 
-print
+print()
 print('Finished!')

@@ -1,7 +1,7 @@
 from pymate.matenet import MateNET, MateDCDevice
 from time import sleep
 
-print "MATE emulator (FLEXnet DC)"
+print("MATE emulator (FLEXnet DC)")
 
 # Create a MateNET bus connection
 bus = MateNET('/dev/ttyUSB0', supports_spacemark=False)
@@ -13,8 +13,8 @@ mate = MateDCDevice(bus, port=bus.find_device(MateNET.DEVICE_FLEXNETDC))
 mate.scan()
 
 # Query the device revision
-print "Revision:", mate.revision
+print("Revision:", mate.revision)
 
-print mate.get_status()
+print(mate.get_status())
 
-print mate.get_logpage(-2)
+print(mate.get_logpage(-2))
