@@ -7,9 +7,10 @@
 # TSDL v2.1 - https://github.com/gioblu/PJON/blob/master/src/strategies/ThroughSerial/specification/TSDL-specification-v2.1.md
 # PJON v3.1 - https://github.com/gioblu/PJON/blob/master/specification/PJON-protocol-specification-v3.1.md
 
-from serial import Serial
-from time import sleep, time
 import logging
+from time import sleep, time
+
+from serial import Serial
 
 SFSP_START = 0x95
 SFSP_END   = 0xEA

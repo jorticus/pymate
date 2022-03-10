@@ -9,9 +9,11 @@
 
 __author__ = 'Jared'
 
-from pymate.value import Value
 from pymate.cstruct import Struct
-from . import MateDevice, MateNET
+from pymate.value import Value
+
+from matenet import MateDevice, MateNET
+
 
 class DCStatusPacket(object):
     fmt = Struct('>'+

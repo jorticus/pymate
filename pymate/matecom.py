@@ -10,7 +10,7 @@
 
 import sys
 import serial
-from .value import Value
+from pymate.value import Value
 
 class MXStatusPacket(object):
     """

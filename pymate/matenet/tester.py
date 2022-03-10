@@ -13,14 +13,16 @@
 #
 __author__ = 'Jared'
 
-from pymate.matenet import MateNET, MateNETPJON, MateDevice
-from struct import pack
-import settings
-import time
-import logging
 import datetime
+import logging
+import time
 from binascii import hexlify
+from struct import pack
+
+import settings
 from pymate.packet_capture.wireshark_tap import WiresharkTap
+
+from matenet import MateDevice, MateNET, MateNETPJON
 
 log = logging.getLogger('mate')
 
@@ -103,7 +105,7 @@ class MateTester(MateNET):
                             packet[2]
                         ))
             except Exception as e:
-                print e
+                print(e)
                 continue
 
     def packet_received(self, packet):

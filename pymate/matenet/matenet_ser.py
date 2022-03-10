@@ -22,11 +22,13 @@
 
 __author__ = 'Jared'
 
-from serial import Serial, PARITY_SPACE, PARITY_MARK, PARITY_ODD, PARITY_EVEN
-from pymate.cstruct import struct
-from time import sleep
 import logging
-from ..util import to_byte, to_bytestr, bin2hexstr
+from time import sleep
+
+from pymate.cstruct import struct
+from pymate.util import bin2hexstr, to_byte, to_bytestr
+from serial import PARITY_EVEN, PARITY_MARK, PARITY_ODD, PARITY_SPACE, Serial
+
 
 class MateNETSerial(object):    
     """

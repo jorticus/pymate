@@ -1,2 +1,2 @@
 
-from .matenet import *
+from pymate.matenet import *
