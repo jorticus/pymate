@@ -13,4 +13,4 @@ mate = MateFXDevice(bus, port=bus.find_device(MateNET.DEVICE_FX))
 mate.scan()
 
 # Query the device revision
-print("Revision:", mate.revision)
+print(f"Revision: {mate.revision}")

@@ -13,7 +13,7 @@ mate = MateDCDevice(bus, port=bus.find_device(MateNET.DEVICE_FLEXNETDC))
 mate.scan()
 
 # Query the device revision
-print("Revision:", mate.revision)
+print(f"Revision: {mate.revision}")
 
 print(mate.get_status())
 

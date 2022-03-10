@@ -149,7 +149,7 @@ class MateDCDevice(MateDevice):
         if devid == None:
             raise RuntimeError("No response from the FLEXnet DC unit")
         if devid != self.DEVICE_TYPE:
-            raise RuntimeError("Attached device is not a FLEXnet DC unit! (DeviceID: %s)" % devid)
+            raise RuntimeError("Attached device is not a FLEXnet DC unit! (DeviceID: %s)" % )
 
     def get_status(self):
         """
@@ -183,5 +183,5 @@ class MateDCDevice(MateDevice):
         # The UserGuide does mention having access to log pages
         #resp = self.send(MateNET.TYPE_LOG, addr=0, param=-day)
         #if resp:
-        #    print 'RAW:', (' '.join("{:02x}".format(ord(c)) for c in resp[1:]))
+        #    print('RAW:', (' '.join("{:02x}".format(ord(c)) for c in resp[1:])))
         #    #return DCLogPagePacket.from_buffer(resp)

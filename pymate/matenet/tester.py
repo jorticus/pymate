@@ -91,19 +91,11 @@ class MateTester(MateNET):
             try:
                 packet = self.recv_packet(timeout=5.0)
                 if packet:
-                    # print("Packet: [Port:%d Type:%d Payload:%s]" % (
-                    #     packet[0],
-                    #     packet[1],
-                    #     packet[2]
-                    # ))
+                    # print(f"Packet: [Port:{packet[0]} Type:{packet[1]} Payload:{packet[2]}]")
 
                     if not self.packet_received(packet):
                         # port, ptype, payload
-                        print("Unhandled packet: [Port:%d Type:%d Payload:%s]" % (
-                            packet[0],
-                            packet[1],
-                            packet[2]
-                        ))
+                        print(f"Unhandled packet: [Port:{packet[0]} Type:{packet[1]} Payload:{packet[2]}]")
             except Exception as e:
                 print(e)
                 continue
@@ -130,7 +122,7 @@ class MateTester(MateNET):
         """
         port, _, payload = packet
         query = MateNET.QueryPacket.from_buffer(payload)
-        #print "Query:", query
+        #print(f"Query: {query}")
         log.info('Read[%.4x]', query.reg)
 
         result = self.process_read(port, query)
@@ -143,7 +135,7 @@ class MateTester(MateNET):
         """
         port, _, payload = packet
         query = MateNET.QueryPacket.from_buffer(payload)
-        #print "Control:", query
+        #print(f"Control: {query}")
         log.info('Write[%.4x, %.4x]', query.reg, query.param)
 
         if query.reg == MateDevice.REG_TIME:
@@ -174,7 +166,7 @@ class MateTester(MateNET):
             minute = ((query.param >> 5) & 0x3F),
             second = ((query.param & 0x1F) << 1)
         )
-        print ("Time: %s" % time)
+        print(f"Time: {time}")
         return True
 
     def handle_date_update(self, query):
@@ -185,7 +177,7 @@ class MateTester(MateNET):
             month = ((query.param >> 5) & 0x0F),
             day   = (query.param & 0x1F)
         )
-        print ("Date: %s" % date)
+        print(f"Date: date")
         return True
 
 
@@ -217,7 +209,7 @@ class MXEmulator(MateTester):
         The MATE wants a status packet, send it a dummy status packet
         to see the effect of various values
         """
-        #print "Received status packet, sending dummy data. payload:", packet
+        #print(f"Received status packet, sending dummy data. payload: {packet}")
 
         # self.send_packet(
         #     self.DEVICE, # NOTE: 1st byte is the device type for STATUS packets
@@ -366,7 +358,7 @@ class FXEmulator(MateTester):
         The MATE wants a status packet, send it a dummy status packet
         to see the effect of various values
         """
-        #print "Received status packet, sending dummy data. payload:", packet
+        #print(f"Received status packet, sending dummy data. payload: {packet}")
 
         self.send_packet(
             self.DEVICE,
@@ -530,7 +522,7 @@ class FlexNETDCEmulator(MateTester):
         The MATE wants a status packet, send it a dummy status packet
         to see the effect of various values
         """
-        #print "Received DC status packet (0x%x)" % query.reg
+        #print("Received DC status packet (0x%x)" % query.reg)
         packet = None
         if query.reg == 0x0A:
             #packet = [0xff, 0xd7, 0x00, 0x12, 0x00, 0x00, 0x01, 0x02, 0x63, 0xff, 0xf5, 0x00, 0x05] # From real device

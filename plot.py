@@ -77,7 +77,7 @@ if __name__ == "__main__":
         while True:
             #status = mate.read_status()  # RS232
             status = mate.get_status()  # MateNET
-            print("BV:%s, PV:%s" % (status.bat_voltage, status.pv_voltage))
+            print(f"BV:{status.bat_voltage}, PV:{status.pv_voltage}")
             data.update([float(status.bat_voltage), float(status.pv_voltage)])
     thread = Thread(target=acquire)
     thread.start()
