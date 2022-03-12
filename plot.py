@@ -9,7 +9,8 @@ from threading import Thread, Lock
 from collections import deque
 
 if len(sys.argv) <= 1:
-    raise Exception("COM Port not specified.\nUsage:\n    %s /dev/ttyUSB0   (Linux)\n    %s COM1           (Windows)" % (sys.argv[0], sys.argv[0]))
+    raise Exception("COM Port not specified.\nUsage:\n    %s /dev/ttyUSB0   (Linux)\n    \
+        %s COM1           (Windows)" % (sys.argv[0], sys.argv[0]))
 comport = sys.argv[1]
 
 N = 1000 # History length, in samples

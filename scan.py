@@ -38,7 +38,7 @@ def print_device(d):
     # No response from the scan command.
     # there is nothing at this port.
     if dtype is None:
-        print(f'Port{d.port}: -')
+        print(f'Port{d.port:d}: -')
     else:
         try:
             rev = d.revision
@@ -46,9 +46,9 @@ def print_device(d):
             rev = str(e)
 
         if dtype not in MateNET.DEVICE_TYPES:
-            print(f"Port{d.port}: Unknown device type: {dtype}")
+            print(f"Port{d.port:d}: Unknown device type: {dtype:d}")
         else:
-            print(f"Port{d.port}: {MateNET.DEVICE_TYPES[dtype]} (Rev: {rev})")
+            print(f"Port{d.port:d}: {MateNET.DEVICE_TYPES[dtype]} (Rev: {rev})")
     return dtype
 
 # The root device

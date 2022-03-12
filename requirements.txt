@@ -1,7 +1,1 @@
 pyserial
-sqlalchemy
-flask
-numpy
-matplotlib
-numpy
-pywin32

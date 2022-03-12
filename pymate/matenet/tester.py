@@ -95,7 +95,7 @@ class MateTester(MateNET):
 
                     if not self.packet_received(packet):
                         # port, ptype, payload
-                        print(f"Unhandled packet: [Port:{packet[0]} Type:{packet[1]} Payload:{packet[2]}]")
+                        print(f"Unhandled packet: [Port:{packet[0]:d} Type:{packet[1]:d} Payload:{packet[2]}]")
             except Exception as e:
                 print(e)
                 continue
@@ -177,7 +177,7 @@ class MateTester(MateNET):
             month = ((query.param >> 5) & 0x0F),
             day   = (query.param & 0x1F)
         )
-        print(f"Date: date")
+        print(f"Date: {date}")
         return True
 
 
