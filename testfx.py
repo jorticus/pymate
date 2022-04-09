@@ -1,7 +1,7 @@
 from pymate.matenet import MateNET, MateFXDevice
 from time import sleep
 
-print "MATE emulator (FX)"
+print("MATE emulator (FX)")
 
 # Create a MateNET bus connection
 bus = MateNET('/dev/ttyUSB0', supports_spacemark=False)
@@ -13,4 +13,4 @@ mate = MateFXDevice(bus, port=bus.find_device(MateNET.DEVICE_FX))
 mate.scan()
 
 # Query the device revision
-print "Revision:", mate.revision
+print(f"Revision: {mate.revision}")

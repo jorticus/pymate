@@ -7,7 +7,9 @@
 __author__ = 'Jared'
 
 from struct import Struct
+
 from pymate.value import Value
+
 from . import MateDevice, MateNET
 
 

@@ -23,7 +23,7 @@ mate = MateMXDevice(bus, port)
 mate.scan()
 
 # Query the device revision
-print("Revision:", mate.revision)
+print(f"Revision: {mate.revision}")
 
 
 print("Getting log page... (day:-1)")

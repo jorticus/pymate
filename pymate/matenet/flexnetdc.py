@@ -9,9 +9,11 @@
 
 __author__ = 'Jared'
 
-from pymate.value import Value
 from pymate.cstruct import Struct
+from pymate.value import Value
+
 from . import MateDevice, MateNET
+
 
 class DCStatusPacket(object):
     fmt = Struct('>'+
@@ -181,5 +183,5 @@ class MateDCDevice(MateDevice):
         # The UserGuide does mention having access to log pages
         #resp = self.send(MateNET.TYPE_LOG, addr=0, param=-day)
         #if resp:
-        #    print 'RAW:', (' '.join("{:02x}".format(ord(c)) for c in resp[1:]))
+        #    print('RAW:', (' '.join("{:02x}".format(ord(c)) for c in resp[1:])))
         #    #return DCLogPagePacket.from_buffer(resp)
